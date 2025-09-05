@@ -469,3 +469,8 @@ export const cancelCommand = async (ctx: CommandContext<Context>) => {
     await ctx.reply('ℹ️ No active operation to cancel.');
   }
 };
+
+// Handler function for tests
+export const handleListEventsCommand = async (ctx: CommandContext<Context>) => {
+  await listEventsCommand(ctx);
+};

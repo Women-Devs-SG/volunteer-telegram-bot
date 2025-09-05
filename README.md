@@ -1,8 +1,8 @@
 # Telegram Volunteer Management Bot
 
-A comprehensive Telegram bot built with grammY and Drizzle ORM for managing volunteer onboarding, probation tracking, event planning, and admin management.
+A comprehensive Telegram bot built with grammY and Drizzle ORM for managing volunteer onboarding, probation tracking, event planning, and admin management for the Women Developers SG community.
 
-## Features
+## ✨ Features
 
 ### 🎯 Volunteer Management
 - **Probation System**: New volunteers must complete 3 commitments within 3 months
@@ -13,77 +13,158 @@ A comprehensive Telegram bot built with grammY and Drizzle ORM for managing volu
 
 ### 📅 Event Management
 - **Interactive Event Creation**: Step-by-step wizard for creating events
-- **Role Assignment**: Automatic role creation based on event format
-- **Format Support**: Workshop, Panel, Online, and In-person events
-- **Publishing**: Finalize and publish events (with mock Meetup integration)
+- **Task Assignment**: Flexible task management system for events
+- **Format Support**: Workshop, Panel, Conference, Talk, Hangout, and more
+- **Publishing**: Finalize and publish events with comprehensive tracking
 
 ### 🔐 Admin System
 - **Secure Authentication**: Admin login with secret key
 - **Role-based Access**: Protected admin commands
 - **Volunteer Management**: Add, remove, and manage volunteers
-- **Event Oversight**: Create and manage events
+- **Event Oversight**: Create and manage events with full task tracking
 
-## Setup Instructions
+### 🧪 Developer-Friendly
+- **Local Development**: PGlite database for easy local testing
+- **Comprehensive Tests**: Full test suite with Vitest
+- **Sample Data**: Pre-populated test data for development
+- **TypeScript**: Fully typed codebase for better developer experience
 
-### 1. Prerequisites
+## 🚀 Quick Start for Contributors
+
+### Prerequisites
+- Node.js 18+ and npm
+- Git
+- A Telegram account
+
+### 1. Fork and Clone
+```bash
+git clone https://github.com/your-username/volunteer-telegram-bot.git
+cd volunteer-telegram-bot
+npm install
+```
+
+### 2. Set Up Your Development Bot
+Follow our [BotFather Setup Guide](./docs/BOTFATHER_SETUP.md) to create your own test bot.
+
+### 3. Configure Local Environment
+```bash
+# Copy the example environment file
+cp .env.example .env
+
+# Edit .env and add your bot token
+# BOT_TOKEN=your_bot_token_here
+# NODE_ENV=development
+```
+
+### 4. Initialize Local Database & Start Development
+```bash
+# Set up local database with sample data (fresh start)
+npm run setup:fresh
+
+# OR if you already have a working setup:
+npm run setup:local
+
+# Start the bot in development mode
+npm run dev:local
+
+# Run tests to verify everything works
+npm test
+```
+
+### 5. Start Contributing!
+- Check out our [Contributing Guide](./CONTRIBUTING.md)
+- Browse open issues
+- Test the bot with `/start` in Telegram
+
+## 📋 Available Scripts
+
+### Development
+```bash
+npm run dev:local          # Start bot with local PGlite database
+npm run setup:local        # Initialize local DB with sample data
+npm run test               # Run test suite
+npm run test:watch         # Run tests in watch mode
+npm run test:coverage      # Run tests with coverage report
+npm run lint               # Check code quality
+```
+
+### Database Management
+```bash
+npm run db:migrate:local   # Run migrations on local database
+npm run db:seed:local      # Seed local database with sample data
+npm run db:studio          # Open Drizzle Studio (database GUI)
+```
+
+### Production
+```bash
+npm run build              # Build for production
+npm start                  # Start production server
+npm run db:migrate         # Run migrations on production DB
+```
+
+## 🏗️ Production Setup
+
+### Prerequisites
 - Node.js 18+ 
 - Telegram Bot Token (from @BotFather)
-- PostgreSQL database (Supabase, Neon, or local)
+- PostgreSQL database (Supabase, Neon, or self-hosted)
 
-### 2. Installation
-
-```bash
-# Clone and install dependencies
-npm install
-
-# Copy environment template
-cp .env.example .env
-```
-
-### 3. Environment Configuration
-
-Edit `.env` file with your credentials:
+### Environment Configuration
 
 ```env
-# Get from @BotFather on Telegram
+# Required
 BOT_TOKEN=your_telegram_bot_token_here
-
-# PostgreSQL database connection string
 DATABASE_URL=postgresql://username:password@host:port/database
-
-# Set a secure password for admin authentication
 ADMIN_SECRET=your_admin_secret_password
 
-# Optional: Channel ID for volunteer promotion broadcasts
+# Optional
 VOLUNTEER_CHANNEL_ID=your_volunteer_channel_id
-
-# Optional: Admin Channel ID for monthly reports
 ADMIN_CHANNEL_ID=your_admin_channel_id
+WEBHOOK_URL=your_vercel_app_URL/api/webhook
 ```
 
-### 4. Database Setup
+### Database Setup & Migrations
 
+#### For Initial Setup
 ```bash
-# Generate and run migrations
+npm run db:generate        # Generate migrations from schema changes
+npm run db:migrate         # Run migrations on production DB
+```
+
+#### Production Migration Strategy
+
+**Option 1: Safe Migration Process (Recommended)**
+```bash
+# 1. Generate migration locally after schema changes
 npm run db:generate
-npm run db:migrate
 
-# Or push schema directly to database
-npm run db:push
+# 2. Test migration on local copy of production data
+NODE_ENV=production npm run db:migrate
 
-# Optional: Open Drizzle Studio to view your database
-npm run db:studio
+# 3. Deploy to staging environment first
+# 4. Run migration on production during maintenance window
+NODE_ENV=production npm run db:migrate
 ```
 
-### 5. Running the Bot
-
+**Option 2: Direct Schema Push (Use with caution)**
 ```bash
-# Development mode (with auto-reload)
-npm run dev
+# Only for non-breaking changes in development
+npm run db:push
+```
 
-# Production mode
-npm run build
-npm start
+#### Migration Best Practices
+
+1. **Always backup production database before migrations**
+2. **Test migrations on staging environment first**
+3. **Use maintenance windows for breaking changes**
+4. **Keep migrations backward compatible when possible**
+5. **Review generated SQL before applying to production**
+
+#### Verifying Migrations
+```bash
+# Check migration status
+npm run db:studio          # Visual database inspection
+npm run db:introspect      # Generate current schema
 ```
 
 ## Commands Reference
@@ -165,42 +246,52 @@ npm start
    - Applies to both probation and active volunteers
    - Can be reactivated by admin
 
-## Database Schema
+## 🗄️ Database Schema
 
-The bot uses 4 main tables:
-- **volunteers** - Volunteer information and status
+The bot uses 5 main tables:
+- **volunteers** - Volunteer information and status tracking
 - **events** - Event details and scheduling
-- **event_roles** - Role assignments for events
+- **tasks** - Event-related tasks and assignments
+- **task_assignments** - Many-to-many relationship for volunteer task assignments
 - **admins** - Admin authentication and permissions
 
 See `src/schema.ts` for complete schema details and Drizzle table definitions.
 
-## Development
+### Local vs Production Database
+- **Local Development**: Uses PGlite (lightweight SQLite-compatible database)
+- **Production**: Uses PostgreSQL (Supabase, Neon, or self-hosted)
+- **Automatic Switching**: Set `NODE_ENV=development` for local mode
 
-### Project Structure
+## 🏗️ Project Structure
+
 ```
 src/
 ├── bot.ts              # Main bot entry point
-├── db-drizzle.ts       # Drizzle ORM database operations
+├── db-drizzle.ts       # Database service layer with all operations
+├── db-local.ts         # PGlite configuration for local development
+├── drizzle.ts          # Database connection handler (local/production)
 ├── schema.ts           # Database schema definitions
-├── types.ts            # Type definitions and converters
-├── drizzle.ts          # Database connection setup
 ├── migrate.ts          # Database migration runner
-├── utils.ts            # Helper functions and utilities
 └── commands/
     ├── volunteers.ts   # Volunteer-related commands
     ├── admins.ts       # Admin commands and authentication
-    └── events.ts       # Event management commands
-```
+    ├── events.ts       # Event management commands
+    └── tasks.ts        # Task management commands
 
-### Building
-```bash
-npm run build
-```
+scripts/
+├── seed-data.ts        # Sample data for local development
+└── introspect-db.ts    # Database introspection utility
 
-### Watching for Changes
-```bash
-npm run watch
+tests/
+├── setup.ts            # Test environment configuration
+├── database.test.ts    # Database operation tests
+└── bot-commands.test.ts # Bot command tests
+
+docs/
+└── BOTFATHER_SETUP.md  # Guide for creating development bots
+
+.github/
+└── pull_request_template.md # PR template for contributors
 ```
 
 ## Maintenance
@@ -229,6 +320,88 @@ The bot automatically runs maintenance tasks:
 - Bot token should never be committed to version control
 - Use environment variables for all sensitive configuration
 
-## Support
+## 🧪 Testing
 
-For issues or feature requests, please check the bot logs and use Drizzle Studio for database debugging information.
+The project includes comprehensive tests using Vitest:
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode (for development)
+npm run test:watch
+
+# Generate coverage report
+npm run test:coverage
+```
+
+### Test Structure
+- **Database Tests**: Test all database operations and business logic
+- **Bot Command Tests**: Mock bot interactions and command handlers
+- **Integration Tests**: End-to-end testing with sample data
+- **Automatic Setup**: Tests use isolated PGlite instances
+
+## 🤝 Contributing
+
+We welcome contributions! Here's how to get started:
+
+1. **Read the [Contributing Guide](./CONTRIBUTING.md)**
+2. **Set up your development environment** (see Quick Start above)
+3. **Create a feature branch**: `git checkout -b feature/your-feature`
+4. **Make your changes** and add tests
+5. **Run the test suite**: `npm test`
+6. **Submit a pull request** using our [PR template](./.github/pull_request_template.md)
+
+### What We're Looking For
+- 🐛 Bug fixes and improvements
+- ✨ New bot commands and features
+- 📚 Documentation improvements
+- 🧪 Additional test coverage
+- 🎨 UI/UX improvements for bot interactions
+
+### Development Workflow
+1. Fork the repository
+2. Create your development bot using [BotFather Setup Guide](./docs/BOTFATHER_SETUP.md)
+3. Set up local environment with `npm run setup:local`
+4. Make changes and test with `npm test`
+5. Test manually with your bot
+6. Submit PR with detailed description
+
+## 📖 Documentation
+
+- [Contributing Guide](./CONTRIBUTING.md) - Detailed contributor instructions
+- [BotFather Setup](./docs/BOTFATHER_SETUP.md) - Create your development bot
+- [Database Schema](./src/schema.ts) - Complete schema definitions
+- [API Documentation](./src/db-drizzle.ts) - Database service methods
+
+## 🔒 Security
+
+- Never commit sensitive data (tokens, passwords, database URLs)
+- Use environment variables for all configuration
+- Rotate bot tokens regularly
+- Use different bots for development and production
+- Report security issues privately
+
+## 📄 License
+
+MIT License - see [LICENSE](./LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Built for the [Women Developers SG](https://www.womendevelopers.sg/) community
+- Powered by [grammY](https://grammy.dev/) Telegram Bot Framework
+- Database management with [Drizzle ORM](https://orm.drizzle.team/)
+- Local development with [PGlite](https://pglite.dev/)
+- Testing with [Vitest](https://vitest.dev/)
+
+## 📞 Support
+
+For issues or feature requests:
+1. Check existing [issues](https://github.com/Women-Devs-SG/volunteer-telegram-bot/issues)
+2. Use Drizzle Studio for database debugging: `npm run db:studio`
+3. Check bot logs for error details
+4. Create a new issue with detailed information
+
+---
+
+**Made with ❤️ for the Women Developers SG community**

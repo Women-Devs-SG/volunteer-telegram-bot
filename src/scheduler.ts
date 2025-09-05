@@ -16,10 +16,65 @@ export class VolunteerScheduler {
   }
 
   /**
+   * Validate if a channel ID is properly configured (not a placeholder)
+   */
+  private isValidChannelId(channelId: string): boolean {
+    // Check for placeholder patterns
+    if (channelId.includes('your_') || 
+        channelId.includes('your-') || 
+        channelId.includes('staging_') || 
+        channelId.includes('production_') ||
+        channelId.includes('test_')) {
+      return false;
+    }
+    
+    // Check if it's a valid Telegram channel ID format
+    // Telegram channel IDs are typically negative numbers starting with -100
+    const numericId = parseInt(channelId);
+    if (isNaN(numericId)) {
+      return false;
+    }
+    
+    // Valid channel IDs should be negative and reasonably large
+    return numericId < -1000;
+  }
+
+  /**
+   * Validate if a topic ID is properly configured (not a placeholder)
+   */
+  private isValidTopicId(topicId: string): boolean {
+    // Check for placeholder patterns
+    if (topicId.includes('your_') || 
+        topicId.includes('your-') || 
+        topicId.includes('staging_') || 
+        topicId.includes('production_') ||
+        topicId.includes('test_')) {
+      return false;
+    }
+    
+    // Check if it's a valid numeric topic ID
+    const numericId = parseInt(topicId);
+    if (isNaN(numericId)) {
+      return false;
+    }
+    
+    // Topic IDs should be positive integers
+    return numericId > 0;
+  }
+
+  /**
    * Start the monthly scheduler
    * Runs on the 1st of each month at 9:00 AM
+   * Disabled in development environment
    */
   start() {
+    // Don't run scheduler in development environment
+    if (process.env.NODE_ENV === 'development') {
+      console.log('📅 Monthly scheduler disabled in development environment');
+      console.log('💡 Use /monthly_report command to test monthly processing manually');
+      return;
+    }
+
     // Calculate time until next first of month at 9:00 AM
     const now = new Date();
     const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1, 9, 0, 0);
@@ -75,18 +130,20 @@ export class VolunteerScheduler {
         }
       }
       
-      if (adminChannelId) {
+      // Only send to admin channel if it's properly configured (not placeholder)
+      if (adminChannelId && this.isValidChannelId(adminChannelId)) {
         const options: any = { parse_mode: 'Markdown' };
         
-        // If topic ID is provided, send to specific topic in forum channel
-        if (adminTopicId) {
+        // If topic ID is provided and valid, send to specific topic in forum channel
+        if (adminTopicId && this.isValidTopicId(adminTopicId)) {
           options.message_thread_id = parseInt(adminTopicId);
         }
         
         await this.bot.api.sendMessage(adminChannelId, reportMessage, options);
         console.log('✅ Monthly report sent to admin channel');
       } else {
-        console.log('⚠️ No admin channel configured - report not sent automatically');
+        console.log('⚠️ No valid admin channel configured - report not sent automatically');
+        console.log('💡 Configure ADMIN_CHANNEL_ID in your environment to enable automatic reports');
         console.log('Report content:', reportMessage);
       }
       
@@ -94,12 +151,12 @@ export class VolunteerScheduler {
     } catch (error) {
       console.error('❌ Error running monthly volunteer status processing:', error);
       
-      // Send error notification to admin channel if configured
-      const adminChannelId = process.env.ADMIN_CHANNEL_ID;
-      if (adminChannelId) {
+      // Send error notification to admin channel if properly configured
+      const errorAdminChannelId = process.env.ADMIN_CHANNEL_ID;
+      if (errorAdminChannelId && this.isValidChannelId(errorAdminChannelId)) {
         try {
           await this.bot.api.sendMessage(
-            adminChannelId, 
+            errorAdminChannelId, 
             '❌ **Error in Monthly Volunteer Processing**\n\nThe automated monthly volunteer status update failed. Please run `/monthly_report` manually to process this month\'s data.',
             { parse_mode: 'Markdown' }
           );
