@@ -15,6 +15,13 @@
       "when": 1756971084696,
       "tag": "0001_safe_enum_update",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1757064460678,
+      "tag": "0002_great_phalanx",
+      "breakpoints": true
     }
   ]
 }

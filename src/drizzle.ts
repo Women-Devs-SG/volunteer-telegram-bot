@@ -1,22 +1,53 @@
-import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
 import dotenv from 'dotenv';
+import { drizzle } from 'drizzle-orm/pglite';
+import { PGlite } from '@electric-sql/pglite';
 import * as schema from './schema';
+import path from 'path';
+import fs from 'fs';
 
 dotenv.config();
 
-// Create the connection
-const connectionString = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL;
+// Get environment mode
+const nodeEnv = process.env.NODE_ENV || 'development';
 
-if (!connectionString) {
-  throw new Error('DATABASE_URL or SUPABASE_DB_URL environment variable is required');
+let db: any;
+let client: any;
+
+if (nodeEnv === 'development') {
+  // Use PGlite for local development - inline setup
+  const dbDir = path.join(process.cwd(), 'local-db');
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
+  
+  // Create PGlite instance for local development
+  client = new PGlite(path.join(dbDir, 'volunteer-bot.db'));
+  
+  // Create drizzle instance with PGlite
+  db = drizzle(client, { schema });
+} else {
+  // Use PostgreSQL for staging/production
+  const { drizzle: drizzlePg } = require('drizzle-orm/postgres-js');
+  const postgres = require('postgres');
+  
+  let connectionString;
+  
+  if (nodeEnv === 'staging') {
+    connectionString = process.env.STAGING_DATABASE_URL;
+  } else {
+    connectionString = process.env.PRODUCTION_DATABASE_URL || process.env.DATABASE_URL;
+  }
+  
+  if (!connectionString) {
+    throw new Error(`Database URL environment variable is required for ${nodeEnv} environment`);
+  }
+  
+  // Create postgres client
+  const pgClient = postgres(connectionString);
+  
+  // Create drizzle instance
+  db = drizzlePg(pgClient, { schema });
+  client = pgClient;
 }
 
-// Create postgres client
-const client = postgres(connectionString);
-
-// Create drizzle instance
-export const db = drizzle(client, { schema });
-
-// Export the client for direct queries if needed
-export { client };
+export { db, client };

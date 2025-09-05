@@ -280,3 +280,22 @@ export const addVolunteerWithStatusCommand = async (ctx: CommandContext<Context>
     await ctx.reply('❌ Failed to add volunteer. Please try again.');
   }
 };
+
+// Handler function for tests
+export const handleListVolunteersCommand = async (ctx: CommandContext<Context>) => {
+  const telegramHandle = ctx.from?.username;
+  
+  if (!telegramHandle) {
+    await ctx.reply('❌ Please set a Telegram username to use this command.');
+    return;
+  }
+
+  // Check if user is admin
+  const isAdmin = await DrizzleDatabaseService.isAdmin(telegramHandle);
+  if (!isAdmin) {
+    await ctx.reply('❌ This command is only available to administrators.');
+    return;
+  }
+
+  await listVolunteersCommand(ctx);
+};

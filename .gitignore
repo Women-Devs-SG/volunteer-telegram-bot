@@ -69,6 +69,12 @@ web_modules/
 .env
 .env.*
 !.env.example
+!.env.local.example
+!.env.staging.example
+!.env.production.example
+
+# Local database files (PGlite)
+local-db/
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache

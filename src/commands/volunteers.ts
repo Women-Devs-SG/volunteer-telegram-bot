@@ -328,3 +328,35 @@ export const volunteerStatusReportCommand = async (ctx: CommandContext<Context>)
     await ctx.reply('❌ Failed to generate status report. Please try again later.');
   }
 };
+
+// /start command handler - for tests
+export const handleStartCommand = async (ctx: CommandContext<Context>) => {
+  const telegramHandle = ctx.from?.username;
+  
+  if (!telegramHandle) {
+    await ctx.reply('❌ Please set a Telegram username to use this bot.');
+    return;
+  }
+
+  const volunteer = await DrizzleDatabaseService.getVolunteerByHandle(telegramHandle);
+  
+  if (!volunteer) {
+    // Create new volunteer
+    const name = ctx.from?.first_name || 'Unknown';
+    const newVolunteer = await DrizzleDatabaseService.createVolunteer(name, telegramHandle, 'probation');
+    
+    if (newVolunteer) {
+      await ctx.reply(
+        `👋 Welcome ${name}! You've been registered as a new volunteer.\n\n` +
+        `Use /onboard to learn about our volunteer program and /my_status to check your progress.`
+      );
+    } else {
+      await ctx.reply('❌ Failed to register you as a volunteer. Please try again later.');
+    }
+  } else {
+    await ctx.reply(
+      `👋 Welcome back ${volunteer.name}!\n\n` +
+      `Use /my_status to check your current volunteer status and /onboard to review the volunteer program.`
+    );
+  }
+};

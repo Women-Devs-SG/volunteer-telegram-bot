@@ -150,7 +150,7 @@ export class DrizzleDatabaseService {
         .from(volunteers)
         .orderBy(volunteers.created_at);
 
-      return result.map(volunteer => ({
+      return result.map((volunteer: typeof volunteers.$inferSelect) => ({
         ...volunteer,
         probation_start_date: toISOString(volunteer.probation_start_date),
         created_at: toISOString(volunteer.created_at),
@@ -249,7 +249,7 @@ export class DrizzleDatabaseService {
         .from(events)
         .orderBy(events.created_at);
 
-      return result.map(event => ({
+      return result.map((event: typeof events.$inferSelect) => ({
         ...event,
         date: toISOString(event.date),
         venue: event.venue,
@@ -332,7 +332,7 @@ export class DrizzleDatabaseService {
         .from(tasks)
         .where(eq(tasks.event_id, eventId));
 
-      return result.map(task => ({
+      return result.map((task: typeof tasks.$inferSelect) => ({
         id: task.id || 0,
         event_id: task.event_id || 0,
         title: task.title || '',
@@ -426,7 +426,7 @@ export class DrizzleDatabaseService {
         .from(taskAssignments)
         .where(eq(taskAssignments.task_id, taskId));
 
-      return result.map(assignment => ({
+      return result.map((assignment: any) => ({
         ...assignment,
         task_id: assignment.task_id || 0,
         volunteer_id: assignment.volunteer_id || 0,
@@ -454,7 +454,7 @@ export class DrizzleDatabaseService {
         .where(eq(taskAssignments.volunteer_id, volunteerId))
         .orderBy(tasks.created_at);
 
-      return result.map(task => ({
+      return result.map((task: any) => ({
         ...task,
         event_id: task.event_id || 0,
         description: task.description || undefined,
