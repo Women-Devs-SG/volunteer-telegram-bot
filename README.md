@@ -49,9 +49,9 @@ Follow our [BotFather Setup Guide](./docs/BOTFATHER_SETUP.md) to create your own
 ### 3. Configure Local Environment
 ```bash
 # Copy the example environment file
-cp .env.example .env
+cp .env.local.example .env.local
 
-# Edit .env and add your bot token
+# Edit .env.local and add your bot token
 # BOT_TOKEN=your_bot_token_here
 # NODE_ENV=development
 ```

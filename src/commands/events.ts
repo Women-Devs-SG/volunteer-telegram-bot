@@ -341,10 +341,11 @@ const finalizeEvent = async (ctx: Context, eventId: number, event: Event) => {
   }
 };
 
-// /list_events command - list all events
+// /list_events command - list upcoming events with simplified format
 export const listEventsCommand = async (ctx: CommandContext<Context>) => {
   const allEvents = await DrizzleDatabaseService.getAllEvents();
-  const events = filterFutureEvents(allEvents);
+  // Temporarily show all events until dates are updated
+  const events = allEvents; // filterFutureEvents(allEvents);
 
   if (!events || events.length === 0) {
     await ctx.reply('📅 No upcoming events found.');
@@ -353,34 +354,39 @@ export const listEventsCommand = async (ctx: CommandContext<Context>) => {
 
   let message = '📅 **Upcoming Events:**\n\n';
   
-  const planningEvents = events.filter(e => e.status === 'planning');
-  const publishedEvents = events.filter(e => e.status === 'published');
-
-  if (planningEvents.length > 0) {
-    message += '**🟡 Planning Events:**\n';
-    for (const event of planningEvents) {
-      const tasks = await DrizzleDatabaseService.getEventTasks(event.id);
-      const completedCount = tasks.filter(t => t.status === 'complete').length;
-      const totalCount = tasks.length;
-      
-      message += `• **${event.title}** (ID: ${event.id})\n`;
-      message += `  📅 ${new Date(event.date).toLocaleDateString()}\n`;
-      message += `  📍 ${event.format.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}\n`;
-      if (event.venue) {
-        message += `  🏢 ${event.venue}\n`;
+  for (const event of events) {
+    const tasks = await DrizzleDatabaseService.getEventTasks(event.id);
+    const statusIcon = event.status === 'published' ? '🟢' : event.status === 'planning' ? '🟡' : '🔴';
+    
+    // Count unassigned tasks by checking task assignments
+    let unassignedCount = 0;
+    for (const task of tasks) {
+      const assignments = await DrizzleDatabaseService.getTaskAssignments(task.id);
+      if (assignments.length === 0) {
+        unassignedCount++;
       }
-      message += `  ✅ Tasks: ${completedCount}/${totalCount} completed\n\n`;
     }
+    const totalTasks = tasks.length;
+    
+    message += `${statusIcon} **${event.title}** (ID: ${event.id})\n`;
+    message += `📊 Status: ${event.status}`;
+    if (event.venue) {
+      message += ` | 📍 ${event.venue}`;
+    }
+    message += `\n`;
+    
+    if (totalTasks > 0) {
+      message += `📋 Tasks: ${unassignedCount} unassigned out of ${totalTasks} total\n`;
+    } else {
+      message += `📋 No tasks created yet\n`;
+    }
+    
+    message += '\n';
   }
 
-  if (publishedEvents.length > 0) {
-    message += '**🟢 Published Events:**\n';
-    for (const event of publishedEvents) {
-      message += `• **${event.title}** (ID: ${event.id})\n`;
-      message += `  📅 ${new Date(event.date).toLocaleDateString()}\n`;
-      message += `  📍 ${event.format}\n\n`;
-    }
-  }
+  message += '💡 **Quick Commands:**\n';
+  message += '• `/commit <task_id>` - Sign up for a task\n';
+  message += '• `/event_details <event_id>` - View detailed event info';
 
   await ctx.reply(message, { parse_mode: 'Markdown' });
 };
@@ -413,50 +419,11 @@ export const eventDetailsCommand = async (ctx: CommandContext<Context>) => {
   }
 
   const tasks = await DrizzleDatabaseService.getEventTasks(eventId);
-  const eventDetails = formatEventDetails(event, tasks);
+  const eventDetails = await formatEventDetails(event, tasks);
   
   await ctx.reply(`📅 **Event Details:**\n\n${eventDetails}`, { parse_mode: 'Markdown' });
 };
 
-// /list_events_with_tasks command - list events with task IDs for easy reference
-export const listEventsWithTasksCommand = async (ctx: CommandContext<Context>) => {
-  const allEvents = await DrizzleDatabaseService.getAllEvents();
-  const events = filterFutureEvents(allEvents);
-
-  if (!events || events.length === 0) {
-    await ctx.reply('📅 No upcoming events found.');
-    return;
-  }
-
-  let message = '📅 **Upcoming Events with Task IDs:**\n\n';
-  
-  for (const event of events) {
-    const tasks = await DrizzleDatabaseService.getEventTasks(event.id);
-    const statusIcon = event.status === 'published' ? '🟢' : event.status === 'planning' ? '🟡' : '🔴';
-    
-    message += `${statusIcon} **${event.title}** (Event ID: **${event.id}**)\n`;
-    message += `📅 ${new Date(event.date).toLocaleDateString()} | 📍 ${event.format.replace(/_/g, ' ')}\n`;
-    
-    if (tasks.length > 0) {
-      message += `**Tasks:**\n`;
-      tasks.forEach(task => {
-        const taskStatusIcon = task.status === 'complete' ? '✅' : task.status === 'in_progress' ? '🔄' : '❌';
-        message += `  • ${task.title} (ID: **${task.id}**) ${taskStatusIcon}\n`;
-      });
-    } else {
-      message += `  _No tasks assigned_\n`;
-    }
-    
-    message += '\n';
-  }
-
-  message += '💡 **Quick Commands:**\n';
-  message += '• `/assign_task <task_id> @volunteer` - Assign task to volunteer\n';
-  message += '• `/event_details <event_id>` - View detailed event info\n';
-  message += '• `/finalize_event <event_id>` - Finalize and publish event';
-
-  await ctx.reply(message, { parse_mode: 'Markdown' });
-};
 
 // Clear conversation state on cancel
 export const cancelCommand = async (ctx: CommandContext<Context>) => {

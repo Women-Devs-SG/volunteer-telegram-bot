@@ -15,6 +15,8 @@ import {
   volunteerStatusReportCommand
 } from './commands/volunteers';
 
+import { DrizzleDatabaseService } from './db-drizzle';
+
 import { 
   requireAdmin,
   adminLoginCommand,
@@ -39,7 +41,6 @@ import {
   finalizeEventCommand,
   listEventsCommand,
   eventDetailsCommand,
-  listEventsWithTasksCommand,
   cancelCommand
 } from './commands/events';
 
@@ -65,8 +66,8 @@ bot.catch((err) => {
 });
 
 // Help message function
-const getHelpMessage = () => {
-  return `🤖 **Volunteer Management Bot**
+const getHelpMessage = async (telegramHandle?: string) => {
+  let message = `🤖 **Volunteer Management Bot**
 
 Welcome! I help manage volunteer onboarding, event planning, and admin tasks.
 
@@ -74,6 +75,15 @@ Welcome! I help manage volunteer onboarding, event planning, and admin tasks.
 • \`/onboard\` - Learn about the volunteer program
 • \`/my_status\` - Check your volunteer status
 • \`/commit <task_id>\` - Sign up for event tasks
+• \`/list_events\` - View upcoming events
+• \`/event_details <event_id>\` - View detailed event information`;
+
+  // Check if user is admin and add admin commands if they are
+  if (telegramHandle) {
+    const isAdmin = await DrizzleDatabaseService.isAdmin(telegramHandle);
+    
+    if (isAdmin) {
+      message += `
 
 **For Admins:**
 • \`/admin_login <secret>\` - Authenticate as admin
@@ -91,10 +101,16 @@ Welcome! I help manage volunteer onboarding, event planning, and admin tasks.
 • \`/broadcast_events\` - Broadcast upcoming events
 • \`/broadcast_tasks\` - Broadcast available tasks
 • \`/broadcast_custom <message>\` - Send custom broadcast message
-• \`/finalize_event <event_id>\` - Publish event
-• \`/list_events\` - View all events (summary)
-• \`/list_events_with_tasks\` - View events with task IDs for reference
-• \`/event_details <event_id>\` - View detailed event information
+• \`/finalize_event <event_id>\` - Publish event`;
+    } else {
+      message += `
+
+**For Admins:**
+• If you are an admin, use \`/admin_login <secret>\` to access admin commands`;
+    }
+  }
+
+  message += `
 
 **General:**
 • \`/start\` - Show welcome message
@@ -102,16 +118,22 @@ Welcome! I help manage volunteer onboarding, event planning, and admin tasks.
 • \`/cancel\` - Cancel current operation
 
 Let's get started! 🚀`;
+
+  return message;
 };
 
 // Start command
 bot.command('start', async (ctx) => {
-  await ctx.reply(getHelpMessage(), { parse_mode: 'Markdown' });
+  const telegramHandle = ctx.from?.username;
+  const helpMessage = await getHelpMessage(telegramHandle);
+  await ctx.reply(helpMessage, { parse_mode: 'Markdown' });
 });
 
 // Help command
 bot.command('help', async (ctx) => {
-  await ctx.reply(getHelpMessage(), { parse_mode: 'Markdown' });
+  const telegramHandle = ctx.from?.username;
+  const helpMessage = await getHelpMessage(telegramHandle);
+  await ctx.reply(helpMessage, { parse_mode: 'Markdown' });
 });
 
 // Volunteer commands
@@ -133,9 +155,8 @@ bot.command('monthly_report', requireAdmin, monthlyReportCommand);
 bot.command('volunteer_status_report', requireAdmin, volunteerStatusReportCommand);
 bot.command('create_event', requireAdmin, createEventCommand);
 bot.command('finalize_event', requireAdmin, finalizeEventCommand);
-bot.command('list_events', requireAdmin, listEventsCommand);
-bot.command('list_events_with_tasks', requireAdmin, listEventsWithTasksCommand);
-bot.command('event_details', requireAdmin, eventDetailsCommand);
+bot.command('list_events', listEventsCommand);
+bot.command('event_details', eventDetailsCommand);
 
 // Broadcast commands (admin only)
 bot.command('broadcast', requireAdmin, broadcastCommand);
@@ -206,9 +227,8 @@ const setupBotCommands = async () => {
       { command: 'monthly_report', description: 'Generate monthly volunteer status report (admin)' },
       { command: 'volunteer_status_report', description: 'View current volunteer status (admin)' },
       { command: 'finalize_event', description: 'Publish event (admin)' },
-      { command: 'list_events', description: 'View upcoming events (admin)' },
-      { command: 'list_events_with_tasks', description: 'View events with task IDs (admin)' },
-      { command: 'event_details', description: 'View detailed event information (admin)' },
+      { command: 'list_events', description: 'View upcoming events with tasks' },
+      { command: 'event_details', description: 'View detailed event information' },
       { command: 'broadcast', description: 'Show broadcast menu (admin)' },
       { command: 'broadcast_volunteers', description: 'Broadcast volunteer status (admin)' },
       { command: 'broadcast_events', description: 'Broadcast upcoming events (admin)' },

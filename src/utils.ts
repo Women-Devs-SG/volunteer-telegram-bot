@@ -114,26 +114,57 @@ export const formatVolunteerStatus = (volunteer: Volunteer): string => {
 };
 
 // Format event details for display
-export const formatEventDetails = (event: Event, tasks?: Task[]): string => {
+export const formatEventDetails = async (event: Event, tasks?: Task[]): Promise<string> => {
   let eventText = `**${event.title}**\n`;
-  eventText += `Date: ${new Date(event.date).toLocaleDateString()}\n`;
-  eventText += `Format: ${event.format.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}\n`;
-  eventText += `Status: ${event.status.replace(/\b\w/g, l => l.toUpperCase())}\n`;
+  eventText += `📅 Date: ${new Date(event.date).toLocaleDateString()}\n`;
+  eventText += `🎯 Format: ${event.format.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}\n`;
+  eventText += `📊 Status: ${event.status.replace(/\b\w/g, l => l.toUpperCase())}\n`;
   
   if (event.venue) {
-    eventText += `Venue: ${event.venue}\n`;
+    eventText += `📍 Venue: ${event.venue}\n`;
   }
   
   if (event.details) {
-    eventText += `Details: ${event.details}\n`;
+    eventText += `📝 Details: ${event.details}\n`;
   }
   
   if (tasks && tasks.length > 0) {
-    eventText += `\n**Tasks:**\n`;
-    tasks.forEach(task => {
+    eventText += `\n**📋 Tasks:**\n`;
+    
+    for (const task of tasks) {
       const statusIcon = task.status === 'complete' ? '✅' : task.status === 'in_progress' ? '🔄' : '❌';
-      eventText += `• ${task.title}: ${statusIcon} ${task.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}\n`;
-    });
+      eventText += `\n• **${task.title}** (ID: **${task.id}**) ${statusIcon}\n`;
+      
+      // Get task assignments to show who is assigned
+      const assignments = await DrizzleDatabaseService.getTaskAssignments(task.id);
+      
+      if (assignments.length > 0) {
+        eventText += `  👤 Assigned to: `;
+        const assignedVolunteers = [];
+        for (const assignment of assignments) {
+          // Get all volunteers and find the one with matching ID
+          const allVolunteers = await DrizzleDatabaseService.getAllVolunteers();
+          const volunteer = allVolunteers.find(v => v.id === assignment.volunteer_id);
+          if (volunteer) {
+            assignedVolunteers.push(`${volunteer.name} (@${volunteer.telegram_handle})`);
+          }
+        }
+        eventText += assignedVolunteers.join(', ') + '\n';
+      } else {
+        eventText += `  🔓 **Available for signup**\n`;
+      }
+      
+      if (task.description) {
+        eventText += `  📄 ${task.description}\n`;
+      }
+    }
+    
+    eventText += `\n💡 **How to volunteer:**\n`;
+    eventText += `• Use \`/commit <task_id>\` to sign up for an available task\n`;
+    eventText += `• Example: \`/commit 5\` to volunteer for task ID 5\n`;
+    eventText += `• Only unassigned tasks are available for signup`;
+  } else {
+    eventText += `\n📋 No tasks created for this event yet.`;
   }
   
   return eventText;
