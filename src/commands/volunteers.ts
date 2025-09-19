@@ -4,9 +4,15 @@ import {
   formatVolunteerStatus, 
   canVolunteerCommit,
   formatTaskStatus,
-  checkAndPromoteVolunteers,
-  processMonthlyVolunteerStatus
+  processMonthlyVolunteerStatus,
+  promoteIfEligible
 } from '../utils';
+
+// Escape special characters for Telegram Markdown (v1) parse_mode
+// Only escape characters that affect formatting to prevent visible backslashes
+const escapeMarkdown = (text: string): string => {
+  return text.replace(/([_*\[\]`])/g, '\\$1');
+};
 
 // /onboard command - explains volunteer system and common roles
 export const onboardCommand = async (ctx: CommandContext<Context>) => {
@@ -118,20 +124,19 @@ export const commitCommand = async (ctx: CommandContext<Context>) => {
     return;
   }
 
-  // Increment volunteer commitments
-  await DrizzleDatabaseService.incrementVolunteerCommitments(volunteer.id);
-
-  // Check for promotion after commitment
-  await checkAndPromoteVolunteers(ctx.api as any);
+  // Note: Commit count will be incremented when admin marks task as complete
 
   // Get event details for confirmation
   const event = await DrizzleDatabaseService.getEvent(task.event_id);
   
+  const safeTaskTitle = escapeMarkdown(task.title);
+  const safeEventTitle = event?.title ? escapeMarkdown(event.title) : 'Unknown';
   await ctx.reply(
     `✅ **Successfully committed to task!**\n\n` +
-    `Task: ${task.title}\n` +
-    `Event: ${event?.title || 'Unknown'}\n` +
-    `Your commitment count: ${volunteer.commitments + 1}\n\n` +
+    `Task: ${safeTaskTitle}\n` +
+    `Event: ${safeEventTitle}\n` +
+    `Your current commitment count: ${volunteer.commitments}\n\n` +
+    `💡 Your commitment count will increase by 1 when an admin marks this task as complete.\n\n` +
     `Thank you for volunteering! 🙏`,
     { parse_mode: 'Markdown' }
   );
@@ -172,16 +177,30 @@ export const assignTaskCommand = async (ctx: CommandContext<Context>) => {
     return;
   }
 
+  // Determine assigned_by: use admin's volunteer ID if admin is also a registered volunteer
+  let assignedByVolunteerId: number | undefined = undefined;
+  const adminHandle = ctx.from?.username;
+  if (adminHandle) {
+    const adminVolunteer = await DrizzleDatabaseService.getVolunteerByHandle(adminHandle);
+    if (adminVolunteer) {
+      assignedByVolunteerId = adminVolunteer.id;
+    }
+  }
+
   // Assign volunteer to task
-  const success = await DrizzleDatabaseService.assignVolunteerToTask(taskId, volunteer.id, ctx.from?.id);
+  const success = await DrizzleDatabaseService.assignVolunteerToTask(taskId, volunteer.id, assignedByVolunteerId);
   
   if (success) {
     const event = await DrizzleDatabaseService.getEvent(task.event_id);
+    const safeTaskTitle = escapeMarkdown(task.title);
+    const safeEventTitle = event?.title ? escapeMarkdown(event.title) : 'Unknown';
+    const safeName = escapeMarkdown(volunteer.name);
+    const safeHandle = escapeMarkdown(volunteer.telegram_handle);
     await ctx.reply(
       `✅ **Task assigned successfully!**\n\n` +
-      `Task: ${task.title}\n` +
-      `Event: ${event?.title || 'Unknown'}\n` +
-      `Assigned to: ${volunteer.name} (@${volunteer.telegram_handle})`,
+      `Task: ${safeTaskTitle}\n` +
+      `Event: ${safeEventTitle}\n` +
+      `Assigned to: ${safeName} (@${safeHandle})`,
       { parse_mode: 'Markdown' }
     );
   } else {
@@ -192,28 +211,31 @@ export const assignTaskCommand = async (ctx: CommandContext<Context>) => {
 // /update_task_status command - update task status
 export const updateTaskStatusCommand = async (ctx: CommandContext<Context>) => {
   const args = ctx.match?.toString().trim().split(' ') || [];
-  
-  if (args.length !== 2) {
-    await ctx.reply(
-      '❌ **Usage:** `/update_task_status <task_id> <status>`\n\n' +
-      '**Available statuses:** todo, in_progress, complete\n\n' +
-      '**Example:** `/update_task_status 5 complete`',
-      { parse_mode: 'Markdown' }
-    );
+
+  const statusHelp =
+    '❓ Task status options:\n' +
+    '• todo — Task has not been started yet\n' +
+    '• in_progress — Work is currently underway\n' +
+    '• complete — Task has been finished (increments volunteer commitments)\n\n' +
+    '✅ Usage: `/update_task_status <task_id> <status>`\n' +
+    'Example: `/update_task_status 12 in_progress`\n' +
+    'Example: `/update_task_status 12 complete`';
+
+  if (args.length < 2) {
+    await ctx.reply(statusHelp, { parse_mode: 'Markdown' });
     return;
   }
 
-  const taskId = parseInt(args[0]!);
+  const taskId = Number(args[0] ?? '');
   const status = args[1] as 'todo' | 'in_progress' | 'complete';
 
   if (isNaN(taskId)) {
-    await ctx.reply('❌ Invalid task ID. Please provide a valid number.');
+    await ctx.reply('❌ Invalid task ID.\n\n' + statusHelp, { parse_mode: 'Markdown' });
     return;
   }
 
-  const validStatuses = ['todo', 'in_progress', 'complete'];
-  if (!validStatuses.includes(status)) {
-    await ctx.reply('❌ Invalid status. Use: todo, in_progress, or complete');
+  if (!['todo', 'in_progress', 'complete'].includes(status)) {
+    await ctx.reply('❌ Invalid status.\n\n' + statusHelp, { parse_mode: 'Markdown' });
     return;
   }
 
@@ -228,12 +250,37 @@ export const updateTaskStatusCommand = async (ctx: CommandContext<Context>) => {
   const success = await DrizzleDatabaseService.updateTaskStatus(taskId, status);
   
   if (success) {
+    let responseMessage = '';
+    
+    // If task is being marked as complete, increment commit count for assigned volunteers
+    if (status === 'complete') {
+      const assignments = await DrizzleDatabaseService.getTaskAssignments(taskId);
+      for (const assignment of assignments) {
+        const volunteer = await DrizzleDatabaseService.getVolunteerById(assignment.volunteer_id);
+        if (volunteer) {
+          const newCommitments = volunteer.commitments + 1;
+          await DrizzleDatabaseService.setVolunteerCommitments(volunteer.id, newCommitments);
+          const safeName = escapeMarkdown(volunteer.name);
+          const safeHandle = escapeMarkdown(volunteer.telegram_handle);
+          responseMessage += `🎉 ${safeName} (@${safeHandle}) commitment count increased to ${newCommitments}!\n`;
+          // Trigger promotion scan immediately for this volunteer
+          const promoted = await promoteIfEligible(ctx.api as any, volunteer.id);
+          if (promoted) {
+            responseMessage += `🚀 ${safeName} (@${safeHandle}) has been promoted to ACTIVE!\n`;
+          }
+        }
+      }
+    }
+    
     const event = await DrizzleDatabaseService.getEvent(task.event_id);
+    const safeTaskTitle2 = escapeMarkdown(task.title);
+    const safeEventTitle2 = event?.title ? escapeMarkdown(event.title) : 'Unknown';
     await ctx.reply(
       `✅ **Task status updated!**\n\n` +
-      `Task: ${task.title}\n` +
-      `Event: ${event?.title || 'Unknown'}\n` +
-      `New status: ${formatTaskStatus(status)}`,
+      `Task: ${safeTaskTitle2}\n` +
+      `Event: ${safeEventTitle2}\n` +
+      `New status: ${formatTaskStatus(status)}\n\n` +
+      responseMessage,
       { parse_mode: 'Markdown' }
     );
   } else {
@@ -293,7 +340,9 @@ export const volunteerStatusReportCommand = async (ctx: CommandContext<Context>)
     if (report.lead.length > 0) {
       message += `🌟 **Lead Volunteers (${report.lead.length}):**\n`;
       report.lead.forEach(v => {
-        message += `• ${v.name} (@${v.telegram_handle}) - ${v.commitments} commitments\n`;
+        const safeName = escapeMarkdown(v.name);
+        const safeHandle = escapeMarkdown(v.telegram_handle);
+        message += `• ${safeName} (@${safeHandle}) - ${v.commitments} commitments\n`;
       });
       message += `\n`;
     }
@@ -301,7 +350,11 @@ export const volunteerStatusReportCommand = async (ctx: CommandContext<Context>)
     if (report.active.length > 0) {
       message += `✅ **Active Volunteers (${report.active.length}):**\n`;
       report.active.forEach(v => {
-        message += `• ${v.name} (@${v.telegram_handle}) - ${v.commitments} commitments\n`;
+        const safeName = escapeMarkdown(v.name);
+        const safeHandle = escapeMarkdown(v.telegram_handle);
+        const start = new Date((v as any).commit_count_start_date || v.updated_at);
+        const endText = (v as any).probation_end_date ? new Date((v as any).probation_end_date).toLocaleDateString() : 'present';
+        message += `• ${safeName} (@${safeHandle}) - ${v.commitments} commitments (Tracking: ${start.toLocaleDateString()} → ${endText})\n`;
       });
       message += `\n`;
     }
@@ -309,7 +362,11 @@ export const volunteerStatusReportCommand = async (ctx: CommandContext<Context>)
     if (report.probation.length > 0) {
       message += `🔄 **Probation Volunteers (${report.probation.length}):**\n`;
       report.probation.forEach(v => {
-        message += `• ${v.name} (@${v.telegram_handle}) - ${v.commitments} commitments\n`;
+        const safeName = escapeMarkdown(v.name);
+        const safeHandle = escapeMarkdown(v.telegram_handle);
+        const start = new Date((v as any).commit_count_start_date || v.updated_at);
+        const endText = (v as any).probation_end_date ? new Date((v as any).probation_end_date).toLocaleDateString() : 'present';
+        message += `• ${safeName} (@${safeHandle}) - ${v.commitments} commitments (Tracking: ${start.toLocaleDateString()} → ${endText})\n`;
       });
       message += `\n`;
     }
@@ -317,7 +374,11 @@ export const volunteerStatusReportCommand = async (ctx: CommandContext<Context>)
     if (report.inactive.length > 0) {
       message += `⚠️ **Inactive Volunteers (${report.inactive.length}):**\n`;
       report.inactive.forEach(v => {
-        message += `• ${v.name} (@${v.telegram_handle}) - ${v.commitments} commitments\n`;
+        const safeName = escapeMarkdown(v.name);
+        const safeHandle = escapeMarkdown(v.telegram_handle);
+        const start = new Date((v as any).commit_count_start_date || v.updated_at);
+        const endText = (v as any).probation_end_date ? new Date((v as any).probation_end_date).toLocaleDateString() : 'present';
+        message += `• ${safeName} (@${safeHandle}) - ${v.commitments} commitments (Tracking: ${start.toLocaleDateString()} → ${endText})\n`;
       });
       message += `\n`;
     }

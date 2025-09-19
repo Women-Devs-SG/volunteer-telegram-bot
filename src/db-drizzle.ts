@@ -10,7 +10,8 @@ interface Volunteer {
   telegram_handle: string;
   status: 'probation' | 'active' | 'lead' | 'inactive';
   commitments: number;
-  probation_start_date: string;
+  commit_count_start_date: string;
+  probation_end_date?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -20,7 +21,7 @@ interface Event {
   title: string;
   date: string;
   format: 'moderated_discussion' | 'conference' | 'talk' | 'hangout' | 'meeting' | 
-          'external_speaker' | 'newsletter' | 'social_media_takeover' | 'workshop' | 'panel' | 'others';
+          'external_speaker' | 'newsletter' | 'social_media_campaign' | 'coding_project' | 'workshop' | 'panel' | 'others';
   status: 'planning' | 'published' | 'completed' | 'cancelled';
   venue?: string | null;
   details?: string;
@@ -66,12 +67,85 @@ export class DrizzleDatabaseService {
       const volunteer = result[0];
       return {
         ...volunteer,
-        probation_start_date: toISOString(volunteer.probation_start_date),
+        commit_count_start_date: toISOString((volunteer as any).commit_count_start_date),
+        probation_end_date: (volunteer as any).probation_end_date ? toISOString((volunteer as any).probation_end_date) : null,
         created_at: toISOString(volunteer.created_at),
         updated_at: toISOString(volunteer.updated_at),
       };
     } catch (error) {
       console.error('Error fetching volunteer:', error);
+      return null;
+    }
+  } // Added closing brace here
+
+  // Delete an event by ID (tasks will cascade-delete via FK on tasks.event_id)
+  static async deleteEvent(id: number): Promise<boolean> {
+    try {
+      await db.delete(events).where(eq(events.id, id));
+      return true;
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      return false;
+    }
+  }
+
+  // Delete a task by ID (assignments are removed via ON CASCADE)
+  static async deleteTask(taskId: number): Promise<boolean> {
+    try {
+      await db.delete(tasks).where(eq(tasks.id, taskId));
+      return true;
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      return false;
+    }
+  }
+
+  // Update event partial fields (title, date, format, venue, details)
+  static async updateEventFields(id: number, fields: Partial<{
+    title: string;
+    date: string; // ISO string
+    format: Event['format'];
+    venue: string | null;
+    details: string | undefined;
+  }>): Promise<boolean> {
+    try {
+      const updatePayload: any = { updated_at: new Date() };
+      if (typeof fields.title !== 'undefined') updatePayload.title = fields.title;
+      if (typeof fields.date !== 'undefined') updatePayload.date = new Date(fields.date);
+      if (typeof fields.format !== 'undefined') updatePayload.format = fields.format;
+      if (typeof fields.venue !== 'undefined') updatePayload.venue = fields.venue;
+      if (typeof fields.details !== 'undefined') updatePayload.details = fields.details;
+
+      await db.update(events)
+        .set(updatePayload)
+        .where(eq(events.id, id));
+      return true;
+    } catch (error) {
+      console.error('Error updating event fields:', error);
+      return false;
+    }
+  }
+
+  // Get a volunteer by numeric ID
+  static async getVolunteerById(id: number): Promise<Volunteer | null> {
+    try {
+      const result = await db.select()
+        .from(volunteers)
+        .where(eq(volunteers.id, id))
+        .limit(1);
+
+      if (!result[0]) return null;
+
+      const volunteer = result[0];
+      return {
+        ...volunteer,
+        commit_count_start_date: toISOString((volunteer as any).commit_count_start_date),
+        probation_end_date: (volunteer as any).probation_end_date ? toISOString((volunteer as any).probation_end_date) : null,
+        created_at: toISOString(volunteer.created_at),
+        updated_at: toISOString(volunteer.updated_at),
+      };
+    } catch (error) {
+      console.error('Error fetching volunteer by id:', error);
       return null;
     }
   }
@@ -83,7 +157,8 @@ export class DrizzleDatabaseService {
         telegram_handle: telegramHandle,
         status,
         commitments: 0,
-        probation_start_date: new Date(),
+        commit_count_start_date: new Date(),
+        probation_end_date: null,
       };
 
       const result = await db.insert(volunteers)
@@ -95,7 +170,8 @@ export class DrizzleDatabaseService {
       const volunteer = result[0];
       return {
         ...volunteer,
-        probation_start_date: toISOString(volunteer.probation_start_date),
+        commit_count_start_date: toISOString((volunteer as any).commit_count_start_date),
+        probation_end_date: (volunteer as any).probation_end_date ? toISOString((volunteer as any).probation_end_date) : null,
         created_at: toISOString(volunteer.created_at),
         updated_at: toISOString(volunteer.updated_at),
       };
@@ -118,28 +194,30 @@ export class DrizzleDatabaseService {
     }
   }
 
-  static async incrementVolunteerCommitments(id: number): Promise<boolean> {
+  static async setVolunteerCommitments(id: number, commitments: number): Promise<boolean> {
     try {
-      const volunteer = await db.select({ commitments: volunteers.commitments })
-        .from(volunteers)
-        .where(eq(volunteers.id, id))
-        .limit(1);
-
-      if (volunteer.length === 0) {
-        return false;
-      }
-
-      const currentCommitments = volunteer[0]?.commitments ?? 0;
       await db.update(volunteers)
         .set({ 
-          commitments: currentCommitments + 1,
+          commitments,
           updated_at: new Date()
         })
         .where(eq(volunteers.id, id));
 
       return true;
     } catch (error) {
-      console.error('Error incrementing commitments:', error);
+      console.error('Error setting volunteer commitments:', error);
+      return false;
+    }
+  }
+
+  static async incrementVolunteerCommitments(id: number): Promise<boolean> {
+    try {
+      const volunteer = await this.getVolunteerById(id);
+      if (!volunteer) return false;
+      const next = (volunteer.commitments ?? 0) + 1;
+      return await this.setVolunteerCommitments(id, next);
+    } catch (error) {
+      console.error('Error incrementing volunteer commitments:', error);
       return false;
     }
   }
@@ -152,7 +230,8 @@ export class DrizzleDatabaseService {
 
       return result.map((volunteer: typeof volunteers.$inferSelect) => ({
         ...volunteer,
-        probation_start_date: toISOString(volunteer.probation_start_date),
+        commit_count_start_date: toISOString((volunteer as any).commit_count_start_date),
+        probation_end_date: (volunteer as any).probation_end_date ? toISOString((volunteer as any).probation_end_date) : null,
         created_at: toISOString(volunteer.created_at),
         updated_at: toISOString(volunteer.updated_at),
       }));
@@ -395,10 +474,11 @@ export class DrizzleDatabaseService {
         name,
         telegram_handle: telegramHandle,
         status,
-        probation_start_date: status === 'probation' ? new Date() : null,
+        commit_count_start_date: new Date(),
         commitments: 0,
         created_at: new Date(),
         updated_at: new Date(),
+        probation_end_date: null,
       }).returning();
 
       const volunteer = result[0];
@@ -409,7 +489,8 @@ export class DrizzleDatabaseService {
         name: volunteer.name || '',
         telegram_handle: volunteer.telegram_handle || '',
         status: volunteer.status || 'probation',
-        probation_start_date: toISOString(volunteer.probation_start_date),
+        commit_count_start_date: toISOString((volunteer as any).commit_count_start_date),
+        probation_end_date: (volunteer as any).probation_end_date ? toISOString((volunteer as any).probation_end_date) : null,
         commitments: volunteer.commitments || 0,
         created_at: toISOString(volunteer.created_at),
         updated_at: toISOString(volunteer.updated_at),
@@ -420,6 +501,43 @@ export class DrizzleDatabaseService {
     }
   }
 
+  // Reset all volunteer commitments for a new quarter and set tracking period
+  static async resetQuarterCommitments(endDate: Date): Promise<{ success: boolean; inactivated: Array<{ id: number; name: string; telegram_handle: string }> }> {
+    try {
+      const nextStart = new Date(endDate);
+      nextStart.setDate(nextStart.getDate() + 1);
+
+      // Fetch current volunteers with their pre-reset commitments & status
+      const all = await db.select().from(volunteers);
+
+      const inactivated: Array<{ id: number; name: string; telegram_handle: string }> = [];
+
+      // Update each volunteer: reset commitments and dates; set inactive only if pre-reset commitments were 0 and status probation/active
+      for (const v of all) {
+        const shouldInactivate = (v.commitments || 0) === 0 && (v.status === 'probation' || v.status === 'active');
+        await db.update(volunteers)
+          .set({
+            commitments: 0,
+            probation_end_date: endDate,
+            commit_count_start_date: nextStart,
+            updated_at: new Date(),
+            ...(shouldInactivate ? { status: 'inactive' as const } : {}),
+          })
+          .where(eq(volunteers.id, v.id));
+
+        if (shouldInactivate) {
+          inactivated.push({ id: v.id, name: (v as any).name, telegram_handle: (v as any).telegram_handle });
+        }
+      }
+
+      return { success: true, inactivated };
+    } catch (error) {
+      console.error('Error resetting quarter commitments:', error);
+      return { success: false, inactivated: [] };
+    }
+  }
+
+  // ... (rest of the code remains the same)
   static async getTaskAssignments(taskId: number): Promise<TaskAssignment[]> {
     try {
       const result = await db.select()

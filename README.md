@@ -116,10 +116,10 @@ npm run db:migrate         # Run migrations on production DB
 BOT_TOKEN=your_telegram_bot_token_here
 DATABASE_URL=postgresql://username:password@host:port/database
 ADMIN_SECRET=your_admin_secret_password
+TELEGRAM_BOT_HANDLE=your_bot_handle_without_at
 
-# Optional
-VOLUNTEER_CHANNEL_ID=your_volunteer_channel_id
-ADMIN_CHANNEL_ID=your_admin_channel_id
+# Optional (broadcasts)
+VOLUNTEER_GROUP_ID=your_volunteer_group_id
 WEBHOOK_URL=your_vercel_app_URL/api/webhook
 ```
 
@@ -187,9 +187,9 @@ npm run db:introspect      # Generate current schema
 - `/monthly_report` - Generate monthly volunteer status report
 - `/volunteer_status_report` - View current volunteer status
 - `/broadcast` - Show broadcast menu for testing
-- `/broadcast_volunteers` - Broadcast volunteer status list
-- `/broadcast_events` - Broadcast upcoming events
-- `/broadcast_tasks` - Broadcast available events needing volunteers
+- `/broadcast_volunteers` - Broadcast volunteer status list to group
+- `/broadcast_events` - Broadcast upcoming events to group
+- `/broadcast_tasks` - Broadcast available events needing volunteers to group
 - `/broadcast_custom <message>` - Send custom broadcast message
 - `/finalize_event <event_id>` - Publish event
 - `/list_events` - View all events
@@ -234,7 +234,7 @@ npm run db:introspect      # Generate current schema
 
 2. **Active Volunteer** (Promoted automatically)
    - Completed probation requirements (3 commitments in 3 months)
-   - Celebration broadcast sent to volunteer channel
+   - Celebration broadcast sent to volunteer group
    - Full access to all opportunities
 
 3. **Lead Volunteer** (Admin assigned)
@@ -307,7 +307,7 @@ The bot automatically runs maintenance tasks:
 - Mark volunteers inactive if they have < 3 commitments
 - Promote probation volunteers to active if they have ≥ 3 commitments
 - Reset commitment counters for new month
-- Send monthly status report to admin channel
+- Generate monthly status report (logged; not auto-sent to a dedicated admin channel)
 
 ### Manual Commands
 - `/monthly_report` - Manually trigger monthly processing

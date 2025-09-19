@@ -8,7 +8,8 @@ export interface Volunteer {
   telegram_handle: string;
   status: 'probation' | 'active' | 'lead' | 'inactive';
   commitments: number;
-  probation_start_date: string;
+  commit_count_start_date: string;
+  probation_end_date?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -18,7 +19,7 @@ export interface Event {
   title: string;
   date: string;
   format: 'moderated_discussion' | 'conference' | 'talk' | 'hangout' | 'meeting' | 
-          'external_speaker' | 'newsletter' | 'social_media_takeover' | 'workshop' | 'panel' | 'others';
+          'external_speaker' | 'newsletter' | 'social_media_campaign' | 'coding_project' | 'workshop' | 'panel' | 'others';
   status: 'planning' | 'published' | 'completed' | 'cancelled';
   venue?: string | null;
   details?: string;
@@ -49,7 +50,8 @@ export interface TaskAssignment {
 export function convertDrizzleVolunteer(drizzleVolunteer: DrizzleVolunteer): Volunteer {
   return {
     ...drizzleVolunteer,
-    probation_start_date: drizzleVolunteer.probation_start_date?.toISOString() || new Date().toISOString(),
+    commit_count_start_date: (drizzleVolunteer as any).commit_count_start_date?.toISOString() || new Date().toISOString(),
+    probation_end_date: (drizzleVolunteer as any).probation_end_date?.toISOString?.() || (drizzleVolunteer as any).probation_end_date || null,
     created_at: drizzleVolunteer.created_at?.toISOString() || new Date().toISOString(),
     updated_at: drizzleVolunteer.updated_at?.toISOString() || new Date().toISOString(),
   };

@@ -60,35 +60,40 @@ async function seedData() {
         telegram_handle: 'alice_dev',
         status: 'active',
         commitments: 5,
-        probation_start_date: new Date('2024-01-15')
+        commit_count_start_date: new Date('2024-01-15'),
+        probation_end_date: null,
       },
       {
         name: 'Bob Smith',
         telegram_handle: 'bob_coder',
         status: 'lead',
         commitments: 8,
-        probation_start_date: new Date('2023-11-01')
+        commit_count_start_date: new Date('2023-11-01'),
+        probation_end_date: null,
       },
       {
         name: 'Carol Wilson',
         telegram_handle: 'carol_tech',
         status: 'probation',
         commitments: 1,
-        probation_start_date: new Date('2024-08-01')
+        commit_count_start_date: new Date('2024-08-01'),
+        probation_end_date: null,
       },
       {
         name: 'David Chen',
         telegram_handle: 'david_js',
         status: 'active',
         commitments: 4,
-        probation_start_date: new Date('2024-02-10')
+        commit_count_start_date: new Date('2024-02-10'),
+        probation_end_date: null,
       },
       {
         name: 'Eva Rodriguez',
         telegram_handle: 'eva_python',
         status: 'inactive',
         commitments: 0,
-        probation_start_date: new Date('2024-03-20')
+        commit_count_start_date: new Date('2024-03-20'),
+        probation_end_date: null,
       }
     ]).returning();
 

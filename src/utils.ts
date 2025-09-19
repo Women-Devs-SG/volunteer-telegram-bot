@@ -1,64 +1,13 @@
 import { Bot } from 'grammy';
 import { DrizzleDatabaseService } from './db-drizzle';
-import { parseTopicLink } from './parse-topic-link';
 
 // Import types from the types module
 import type { Volunteer, Event, Task, TaskAssignment } from './types';
 
-// Task templates based on event format
-export const getRequiredTasks = (format: Event['format']): { title: string; description: string }[] => {
-  const baseTasks = [
-    { title: 'Pre-event Marketing', description: 'Promote the event before it happens' },
-    { title: 'Post-event Marketing', description: 'Share highlights and follow-up after the event' }
-  ];
-  
-  switch (format) {
-    case 'panel':
-      return [
-        ...baseTasks,
-        { title: 'Moderation', description: 'Moderate the panel discussion' },
-        { title: 'Date Confirmation', description: 'Confirm the event date with all participants' },
-        { title: 'Speaker Confirmation', description: 'Confirm speakers and their topics' }
-      ];
-    case 'workshop':
-      return [
-        ...baseTasks,
-        { title: 'Facilitation', description: 'Facilitate the workshop activities' },
-        { title: 'Date Confirmation', description: 'Confirm the event date with all participants' }
-      ];
-    case 'conference':
-    case 'talk':
-    case 'external_speaker':
-      return [
-        ...baseTasks,
-        { title: 'Speaker Coordination', description: 'Coordinate with speakers and manage logistics' },
-        { title: 'Date Confirmation', description: 'Confirm the event date with all participants' }
-      ];
-    case 'meeting':
-    case 'hangout':
-      return [
-        ...baseTasks,
-        { title: 'Date Confirmation', description: 'Confirm the event date with all participants' }
-      ];
-    case 'moderated_discussion':
-      return [
-        ...baseTasks,
-        { title: 'Moderation', description: 'Moderate the discussion' },
-        { title: 'Topic Preparation', description: 'Prepare discussion topics and questions' }
-      ];
-    case 'newsletter':
-      return [
-        { title: 'Content Creation', description: 'Create newsletter content' },
-        { title: 'Review and Editing', description: 'Review and edit the newsletter before publishing' }
-      ];
-    case 'social_media_takeover':
-      return [
-        { title: 'Content Planning', description: 'Plan social media content for the takeover' },
-        { title: 'Content Creation', description: 'Create posts, stories, and other content' }
-      ];
-    default:
-      return baseTasks;
-  }
+// Escape special characters for Telegram Markdown (v1) parse_mode
+// Only escape characters that affect formatting to prevent visible backslashes
+const escapeMarkdown = (text: string): string => {
+  return text.replace(/([_*\[\]`])/g, '\\$1');
 };
 
 // Check if volunteer is eligible for promotion
@@ -67,13 +16,14 @@ export const checkProbationStatus = (volunteer: Volunteer): {
   daysRemaining: number;
   commitmentsNeeded: number;
 } => {
-  const probationStart = new Date(volunteer.probation_start_date);
+  const start = new Date(volunteer.commit_count_start_date);
+  const end = volunteer.probation_end_date ? new Date(volunteer.probation_end_date) : new Date(start.getTime() + 90 * 24 * 60 * 60 * 1000);
   const now = new Date();
-  const daysSinceProbation = Math.floor((now.getTime() - probationStart.getTime()) / (1000 * 60 * 60 * 24));
-  const daysRemaining = Math.max(0, 90 - daysSinceProbation); // 3 months = 90 days
+  const effectiveEnd = end;
+  const daysRemaining = Math.max(0, Math.ceil((effectiveEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
   const commitmentsNeeded = Math.max(0, 3 - volunteer.commitments);
   
-  const isEligible = volunteer.commitments >= 3 && daysSinceProbation <= 90;
+  const isEligible = volunteer.commitments >= 3 && now <= effectiveEnd;
   
   return {
     isEligible,
@@ -95,9 +45,13 @@ export const checkInactiveStatus = (volunteer: Volunteer): boolean => {
 export const formatVolunteerStatus = (volunteer: Volunteer): string => {
   const { isEligible, daysRemaining, commitmentsNeeded } = checkProbationStatus(volunteer);
   
-  let statusText = `**${volunteer.name}** (@${volunteer.telegram_handle})\n`;
+  const safeName = escapeMarkdown(volunteer.name);
+  const safeHandle = escapeMarkdown(volunteer.telegram_handle);
+  let statusText = `**${safeName}** (@${safeHandle})\n`;
   statusText += `Status: ${volunteer.status.toUpperCase()}\n`;
-  statusText += `Commitments: ${volunteer.commitments}\n`;
+  const start = new Date(volunteer.commit_count_start_date);
+  const endText = volunteer.probation_end_date ? new Date(volunteer.probation_end_date).toLocaleDateString() : 'present';
+  statusText += `Commitments: ${volunteer.commitments} (Tracking: ${start.toLocaleDateString()} → ${endText})\n`;
   
   if (volunteer.status === 'probation') {
     if (isEligible) {
@@ -115,17 +69,18 @@ export const formatVolunteerStatus = (volunteer: Volunteer): string => {
 
 // Format event details for display
 export const formatEventDetails = async (event: Event, tasks?: Task[]): Promise<string> => {
-  let eventText = `**${event.title}**\n`;
+  const safeTitle = escapeMarkdown(event.title);
+  let eventText = `**${safeTitle}**\n`;
   eventText += `📅 Date: ${new Date(event.date).toLocaleDateString()}\n`;
   eventText += `🎯 Format: ${event.format.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}\n`;
   eventText += `📊 Status: ${event.status.replace(/\b\w/g, l => l.toUpperCase())}\n`;
   
   if (event.venue) {
-    eventText += `📍 Venue: ${event.venue}\n`;
+    eventText += `📍 Venue: ${escapeMarkdown(event.venue)}\n`;
   }
   
   if (event.details) {
-    eventText += `📝 Details: ${event.details}\n`;
+    eventText += `📝 Details: ${escapeMarkdown(event.details)}\n`;
   }
   
   if (tasks && tasks.length > 0) {
@@ -133,7 +88,8 @@ export const formatEventDetails = async (event: Event, tasks?: Task[]): Promise<
     
     for (const task of tasks) {
       const statusIcon = task.status === 'complete' ? '✅' : task.status === 'in_progress' ? '🔄' : '❌';
-      eventText += `\n• **${task.title}** (ID: **${task.id}**) ${statusIcon}\n`;
+      const safeTaskTitle = escapeMarkdown(task.title);
+      eventText += `\n• **${safeTaskTitle}** (ID: **${task.id}**) ${statusIcon}\n`;
       
       // Get task assignments to show who is assigned
       const assignments = await DrizzleDatabaseService.getTaskAssignments(task.id);
@@ -146,7 +102,9 @@ export const formatEventDetails = async (event: Event, tasks?: Task[]): Promise<
           const allVolunteers = await DrizzleDatabaseService.getAllVolunteers();
           const volunteer = allVolunteers.find(v => v.id === assignment.volunteer_id);
           if (volunteer) {
-            assignedVolunteers.push(`${volunteer.name} (@${volunteer.telegram_handle})`);
+            const safeName = escapeMarkdown(volunteer.name);
+            const safeHandle = escapeMarkdown(volunteer.telegram_handle);
+            assignedVolunteers.push(`${safeName} (@${safeHandle})`);
           }
         }
         eventText += assignedVolunteers.join(', ') + '\n';
@@ -155,7 +113,7 @@ export const formatEventDetails = async (event: Event, tasks?: Task[]): Promise<
       }
       
       if (task.description) {
-        eventText += `  📄 ${task.description}\n`;
+        eventText += `  📄 ${escapeMarkdown(task.description)}\n`;
       }
     }
     
@@ -172,39 +130,24 @@ export const formatEventDetails = async (event: Event, tasks?: Task[]): Promise<
 
 // Send celebration broadcast when volunteer is promoted
 export const sendPromotionBroadcast = async (bot: Bot, volunteer: Volunteer): Promise<void> => {
-  let channelId = process.env.VOLUNTEER_CHANNEL_ID;
-  let topicId = process.env.VOLUNTEER_TOPIC_ID;
+  const groupId = process.env.VOLUNTEER_GROUP_ID;
   
-  // Check if topic link is provided instead
-  const topicLink = process.env.VOLUNTEER_TOPIC_LINK;
-  if (topicLink && !channelId) {
-    const parsed = parseTopicLink(topicLink);
-    if (parsed) {
-      channelId = parsed.channelId;
-      topicId = parsed.topicId;
-    }
-  }
-  
-  if (!channelId) {
+  if (!groupId) {
     console.log('No volunteer channel configured for broadcast');
     return;
   }
   
+  const safeName = escapeMarkdown(volunteer.name);
+  const safeHandle = escapeMarkdown(volunteer.telegram_handle);
   const message = `🎉 **Congratulations!** 🎉\n\n` +
-    `${volunteer.name} (@${volunteer.telegram_handle}) has successfully completed their probation period ` +
+    `${safeName} (@${safeHandle}) has successfully completed their probation period ` +
     `and is now an **active volunteer**!\n\n` +
     `They completed ${volunteer.commitments} commitments and are ready to take on more responsibilities. ` +
     `Welcome to the team! 🚀`;
   
   try {
     const options: any = { parse_mode: 'Markdown' };
-    
-    // If topic ID is provided, send to specific topic in forum channel
-    if (topicId) {
-      options.message_thread_id = parseInt(topicId);
-    }
-    
-    await bot.api.sendMessage(channelId, message, options);
+    await bot.api.sendMessage(groupId, message, options);
   } catch (error) {
     console.error('Error sending promotion broadcast:', error);
   }
@@ -307,6 +250,21 @@ export const checkAndPromoteVolunteers = async (bot: Bot): Promise<void> => {
   }
 };
 
+// Promote a single volunteer if eligible (used on precise triggers)
+export const promoteIfEligible = async (bot: Bot, volunteerId: number): Promise<boolean> => {
+  const v = await DrizzleDatabaseService.getVolunteerById(volunteerId);
+  if (!v) return false;
+  if (v.status !== 'probation') return false;
+  const { isEligible } = checkProbationStatus(v);
+  if (!isEligible) return false;
+  const success = await DrizzleDatabaseService.updateVolunteerStatus(v.id, 'active');
+  if (success) {
+    await sendPromotionBroadcast(bot, { ...v, status: 'active' });
+    return true;
+  }
+  return false;
+};
+
 // Mark inactive volunteers based on commitment tracking
 export const processMonthlyVolunteerStatus = async (bot: Bot): Promise<string> => {
   try {
@@ -330,7 +288,9 @@ export const processMonthlyVolunteerStatus = async (bot: Bot): Promise<string> =
     if (report.lead.length > 0) {
       message += `🌟 **Lead Volunteers (${report.lead.length}):**\n`;
       report.lead.forEach(v => {
-        message += `• ${v.name} (@${v.telegram_handle})\n`;
+        const safeName = escapeMarkdown(v.name);
+        const safeHandle = escapeMarkdown(v.telegram_handle);
+        message += `• ${safeName} (@${safeHandle})\n`;
       });
       message += `\n`;
     }
@@ -338,7 +298,9 @@ export const processMonthlyVolunteerStatus = async (bot: Bot): Promise<string> =
     if (report.active.length > 0) {
       message += `✅ **Active Volunteers (${report.active.length}):**\n`;
       report.active.forEach(v => {
-        message += `• ${v.name} (@${v.telegram_handle}) - ${v.commitments} commitments\n`;
+        const safeName = escapeMarkdown(v.name);
+        const safeHandle = escapeMarkdown(v.telegram_handle);
+        message += `• ${safeName} (@${safeHandle}) - ${v.commitments} commitments\n`;
       });
       message += `\n`;
     }
@@ -346,7 +308,9 @@ export const processMonthlyVolunteerStatus = async (bot: Bot): Promise<string> =
     if (report.probation.length > 0) {
       message += `🔄 **Probation Volunteers (${report.probation.length}):**\n`;
       report.probation.forEach(v => {
-        message += `• ${v.name} (@${v.telegram_handle}) - ${v.commitments} commitments\n`;
+        const safeName = escapeMarkdown(v.name);
+        const safeHandle = escapeMarkdown(v.telegram_handle);
+        message += `• ${safeName} (@${safeHandle}) - ${v.commitments} commitments\n`;
       });
       message += `\n`;
     }
@@ -354,7 +318,9 @@ export const processMonthlyVolunteerStatus = async (bot: Bot): Promise<string> =
     if (report.inactive.length > 0) {
       message += `⚠️ **Inactive Volunteers (${report.inactive.length}):**\n`;
       report.inactive.forEach(v => {
-        message += `• ${v.name} (@${v.telegram_handle}) - ${v.commitments} commitments\n`;
+        const safeName = escapeMarkdown(v.name);
+        const safeHandle = escapeMarkdown(v.telegram_handle);
+        message += `• ${safeName} (@${safeHandle}) - ${v.commitments} commitments\n`;
       });
       message += `\n`;
     }
@@ -371,55 +337,6 @@ export const processMonthlyVolunteerStatus = async (bot: Bot): Promise<string> =
   }
 };
 
-// Get all available task templates for selection
-export const getAllTaskTemplates = (): { title: string; description: string; category: string }[] => {
-  return [
-    // Marketing tasks
-    { title: 'Pre-event Marketing', description: 'Promote the event before it happens', category: 'Marketing' },
-    { title: 'Post-event Marketing', description: 'Share highlights and follow-up after the event', category: 'Marketing' },
-    { title: 'Social Media Promotion', description: 'Create and share social media content', category: 'Marketing' },
-    { title: 'Newsletter Announcement', description: 'Include event in newsletter', category: 'Marketing' },
-    
-    // Coordination tasks
-    { title: 'Date Confirmation', description: 'Confirm the event date with all participants', category: 'Coordination' },
-    { title: 'Speaker Confirmation', description: 'Confirm speakers and their topics', category: 'Coordination' },
-    { title: 'Speaker Coordination', description: 'Coordinate with speakers and manage logistics', category: 'Coordination' },
-    { title: 'Venue Coordination', description: 'Coordinate venue logistics and setup', category: 'Coordination' },
-    
-    // Event Management
-    { title: 'Moderation', description: 'Moderate the panel discussion or event', category: 'Event Management' },
-    { title: 'Facilitation', description: 'Facilitate the workshop activities or discussion', category: 'Event Management' },
-    { title: 'Topic Preparation', description: 'Prepare discussion topics and questions', category: 'Event Management' },
-    { title: 'Technical Setup', description: 'Handle technical equipment and setup', category: 'Event Management' },
-    
-    // Content Creation
-    { title: 'Content Creation', description: 'Create content for the event or publication', category: 'Content' },
-    { title: 'Content Planning', description: 'Plan content structure and topics', category: 'Content' },
-    { title: 'Review and Editing', description: 'Review and edit content before publishing', category: 'Content' },
-    
-    // General
-    { title: 'Registration Management', description: 'Manage event registrations and attendee list', category: 'General' },
-    { title: 'Follow-up Communications', description: 'Send follow-up messages to attendees', category: 'General' },
-    { title: 'Documentation', description: 'Document event outcomes and learnings', category: 'General' }
-  ];
-};
-
-// Format task templates for display with numbering
-export const formatTaskTemplatesForSelection = (templates: { title: string; description: string; category: string }[]): string => {
-  let message = '';
-  const categories = [...new Set(templates.map(t => t.category))];
-  
-  categories.forEach(category => {
-    message += `\n**${category}:**\n`;
-    const categoryTasks = templates.filter(t => t.category === category);
-    categoryTasks.forEach((task) => {
-      const globalIndex = templates.indexOf(task) + 1;
-      message += `${globalIndex}. ${task.title} - ${task.description}\n`;
-    });
-  });
-  
-  return message;
-};
 
 // Filter events to show only today and future events
 export const filterFutureEvents = (events: Event[]): Event[] => {

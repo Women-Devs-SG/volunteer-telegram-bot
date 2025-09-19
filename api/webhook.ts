@@ -19,11 +19,9 @@ import {
   removeVolunteerCommand,
 } from '../src/commands/admins';
 
-import {
+import { 
   createEventCommand,
   handleEventWizard,
-  handleFinalizationConfirmation,
-  finalizeEventCommand,
   listEventsCommand,
   eventDetailsCommand,
   cancelCommand
@@ -101,7 +99,6 @@ bot.command('list_volunteers', requireAdmin, listVolunteersCommand);
 bot.command('add_volunteer', requireAdmin, addVolunteerCommand);
 bot.command('remove_volunteer', requireAdmin, removeVolunteerCommand);
 bot.command('create_event', requireAdmin, createEventCommand);
-bot.command('finalize_event', requireAdmin, finalizeEventCommand);
 bot.command('list_events', requireAdmin, listEventsCommand);
 bot.command('event_details', requireAdmin, eventDetailsCommand);
 
@@ -112,9 +109,6 @@ bot.command('cancel', cancelCommand);
 bot.on('message:text', async (ctx) => {
   // Handle event creation wizard
   await handleEventWizard(ctx);
-  
-  // Handle finalization confirmation
-  await handleFinalizationConfirmation(ctx);
 });
 
 // Initialize bot once

@@ -1,6 +1,5 @@
 import { Bot } from 'grammy';
 import { processMonthlyVolunteerStatus } from './utils';
-import { parseTopicLink } from './parse-topic-link';
 
 /**
  * Scheduler for automated monthly volunteer status processing
@@ -15,52 +14,7 @@ export class VolunteerScheduler {
     this.bot = bot;
   }
 
-  /**
-   * Validate if a channel ID is properly configured (not a placeholder)
-   */
-  private isValidChannelId(channelId: string): boolean {
-    // Check for placeholder patterns
-    if (channelId.includes('your_') || 
-        channelId.includes('your-') || 
-        channelId.includes('staging_') || 
-        channelId.includes('production_') ||
-        channelId.includes('test_')) {
-      return false;
-    }
-    
-    // Check if it's a valid Telegram channel ID format
-    // Telegram channel IDs are typically negative numbers starting with -100
-    const numericId = parseInt(channelId);
-    if (isNaN(numericId)) {
-      return false;
-    }
-    
-    // Valid channel IDs should be negative and reasonably large
-    return numericId < -1000;
-  }
-
-  /**
-   * Validate if a topic ID is properly configured (not a placeholder)
-   */
-  private isValidTopicId(topicId: string): boolean {
-    // Check for placeholder patterns
-    if (topicId.includes('your_') || 
-        topicId.includes('your-') || 
-        topicId.includes('staging_') || 
-        topicId.includes('production_') ||
-        topicId.includes('test_')) {
-      return false;
-    }
-    
-    // Check if it's a valid numeric topic ID
-    const numericId = parseInt(topicId);
-    if (isNaN(numericId)) {
-      return false;
-    }
-    
-    // Topic IDs should be positive integers
-    return numericId > 0;
-  }
+  // Removed admin channel/topic validation helpers (no dedicated admin channel usage)
 
   /**
    * Start the monthly scheduler
@@ -115,55 +69,15 @@ export class VolunteerScheduler {
       console.log('📊 Running monthly volunteer status processing...');
       
       const reportMessage = await processMonthlyVolunteerStatus(this.bot);
-      
-      // Send report to admin channel if configured
-      let adminChannelId = process.env.ADMIN_CHANNEL_ID;
-      let adminTopicId = process.env.ADMIN_TOPIC_ID;
-      
-      // Check if topic link is provided instead
-      const adminTopicLink = process.env.ADMIN_TOPIC_LINK;
-      if (adminTopicLink && !adminChannelId) {
-        const parsed = parseTopicLink(adminTopicLink);
-        if (parsed) {
-          adminChannelId = parsed.channelId;
-          adminTopicId = parsed.topicId;
-        }
-      }
-      
-      // Only send to admin channel if it's properly configured (not placeholder)
-      if (adminChannelId && this.isValidChannelId(adminChannelId)) {
-        const options: any = { parse_mode: 'Markdown' };
-        
-        // If topic ID is provided and valid, send to specific topic in forum channel
-        if (adminTopicId && this.isValidTopicId(adminTopicId)) {
-          options.message_thread_id = parseInt(adminTopicId);
-        }
-        
-        await this.bot.api.sendMessage(adminChannelId, reportMessage, options);
-        console.log('✅ Monthly report sent to admin channel');
-      } else {
-        console.log('⚠️ No valid admin channel configured - report not sent automatically');
-        console.log('💡 Configure ADMIN_CHANNEL_ID in your environment to enable automatic reports');
-        console.log('Report content:', reportMessage);
-      }
+      // No dedicated admin channel; just log the generated report for operators
+      console.log('📊 Monthly report generated (not auto-sent to admin channel):');
+      console.log(reportMessage);
       
       console.log('✅ Monthly volunteer status processing completed');
     } catch (error) {
       console.error('❌ Error running monthly volunteer status processing:', error);
       
-      // Send error notification to admin channel if properly configured
-      const errorAdminChannelId = process.env.ADMIN_CHANNEL_ID;
-      if (errorAdminChannelId && this.isValidChannelId(errorAdminChannelId)) {
-        try {
-          await this.bot.api.sendMessage(
-            errorAdminChannelId, 
-            '❌ **Error in Monthly Volunteer Processing**\n\nThe automated monthly volunteer status update failed. Please run `/monthly_report` manually to process this month\'s data.',
-            { parse_mode: 'Markdown' }
-          );
-        } catch (notificationError) {
-          console.error('❌ Failed to send error notification:', notificationError);
-        }
-      }
+      // No admin channel notifications; errors are logged only
     }
   }
 
