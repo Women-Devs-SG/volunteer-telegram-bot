@@ -213,6 +213,14 @@ export const listVolunteersCommand = async (ctx: CommandContext<Context>) => {
   }
 
   let message = '📋 *All Volunteers:*\n\n';
+
+  // Since all volunteers are tracked on the same quarter, show one tracking period line
+  const ref = volunteers[0]!;
+  const refStart = new Date((ref as any).commit_count_start_date || ref.updated_at).toLocaleDateString();
+  const refEndText = (ref as any).probation_end_date
+    ? new Date((ref as any).probation_end_date).toLocaleDateString()
+    : 'present';
+  message += `📅 Tracking period: ${refStart} → ${refEndText}\n\n`;
   
   // Group volunteers by status
   const probationVolunteers = volunteers.filter(v => v.status === 'probation');
@@ -225,9 +233,7 @@ export const listVolunteersCommand = async (ctx: CommandContext<Context>) => {
     probationVolunteers.forEach(volunteer => {
       const safeName = escapeMarkdown(volunteer.name);
       const safeHandle = escapeMarkdown(volunteer.telegram_handle);
-      const start = new Date((volunteer as any).commit_count_start_date || volunteer.updated_at);
-      const endText = (volunteer as any).probation_end_date ? new Date((volunteer as any).probation_end_date).toLocaleDateString() : 'present';
-      message += `• ${safeName} (@${safeHandle}) - ${volunteer.commitments}/3 commitments (Tracking: ${start.toLocaleDateString()} → ${endText})\n`;
+      message += `• ${safeName} (@${safeHandle}) - ${volunteer.commitments}/3 commitments\n`;
     });
     message += '\n';
   }
@@ -237,9 +243,7 @@ export const listVolunteersCommand = async (ctx: CommandContext<Context>) => {
     activeVolunteers.forEach(volunteer => {
       const safeName = escapeMarkdown(volunteer.name);
       const safeHandle = escapeMarkdown(volunteer.telegram_handle);
-      const start = new Date((volunteer as any).commit_count_start_date || volunteer.updated_at);
-      const endText = (volunteer as any).probation_end_date ? new Date((volunteer as any).probation_end_date).toLocaleDateString() : 'present';
-      message += `• ${safeName} (@${safeHandle}) - ${volunteer.commitments} commitments (Tracking: ${start.toLocaleDateString()} → ${endText})\n`;
+      message += `• ${safeName} (@${safeHandle}) - ${volunteer.commitments} commitments\n`;
     });
     message += '\n';
   }
@@ -249,9 +253,7 @@ export const listVolunteersCommand = async (ctx: CommandContext<Context>) => {
     inactiveVolunteers.forEach(volunteer => {
       const safeName = escapeMarkdown(volunteer.name);
       const safeHandle = escapeMarkdown(volunteer.telegram_handle);
-      const start = new Date((volunteer as any).commit_count_start_date || volunteer.updated_at);
-      const endText = (volunteer as any).probation_end_date ? new Date((volunteer as any).probation_end_date).toLocaleDateString() : 'present';
-      message += `• ${safeName} (@${safeHandle}) - ${volunteer.commitments} commitments (Tracking: ${start.toLocaleDateString()} → ${endText})\n`;
+      message += `• ${safeName} (@${safeHandle}) - ${volunteer.commitments} commitments\n`;
     });
     message += '\n';
   }
