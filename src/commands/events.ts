@@ -305,17 +305,17 @@ export const handleEventWizard = async (ctx: Context) => {
       await ctx.reply(
         '**Step 3/6:** What is the event format?\n\n' +
         'Please choose one:\n' +
-        '• **talk** - Single speaker presentation\n' +
-        '• **workshop** - Interactive learning session\n' +
-        '• **moderated_discussion** - Facilitated discussion\n' +
-        '• **conference** - Large-scale conference\n' +
-        '• **hangout** - Casual social gathering\n' +
-        '• **meeting** - Formal meeting\n' +
-        '• **external_speaker** - Event with external speaker\n' +
-        '• **newsletter** - Newsletter content creation\n' +
-        '• **social_media_campaign** - Social media campaign\n' +
-        '• **coding_project** - Open-source or internal coding project\n' +
-        '• **others** - Other event type\n\n' +
+        '• `talk` - Single speaker presentation\n' +
+        '• `workshop` - Interactive learning session\n' +
+        '• `moderated_discussion` - Facilitated discussion\n' +
+        '• `conference` - Large-scale conference\n' +
+        '• `hangout` - Casual social gathering\n' +
+        '• `meeting` - Formal meeting\n' +
+        '• `external_speaker` - Event with external speaker\n' +
+        '• `newsletter` - Newsletter content creation\n' +
+        '• `social_media_campaign` - Social media campaign\n' +
+        '• `coding_project` - Open-source or internal coding project\n' +
+        '• `others` - Other event type\n\n' +
         'Type the format name (e.g., "workshop")',
         { parse_mode: 'Markdown' }
       );
