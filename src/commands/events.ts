@@ -14,7 +14,7 @@ const conversationState = new Map<number, any>();
 const editEventState = new Map<number, {
   step: 'await_id' | 'menu' | 'field_value' | 'add_task_title' | 'add_task_desc' | 'remove_task';
   eventId?: number;
-  field?: 'title' | 'date' | 'format' | 'venue' | 'details';
+  field?: 'title' | 'date' | 'format' | 'venue' | 'details' | 'status';
   pendingTask?: { title: string; description?: string };
 }>();
 
@@ -104,6 +104,7 @@ export const editEventCommand = async (ctx: CommandContext<Context>) => {
     '• format (talk/workshop/...)\n' +
     '• venue\n' +
     '• details\n' +
+    '• status (planning/published/completed/cancelled)\n' +
     '• add_task\n' +
     '• remove_task\n' +
     '• done\n' +
@@ -155,14 +156,14 @@ export const handleEditEventWizard = async (ctx: Context) => {
       await ctx.reply(
         '**Edit Event**\n' +
         `ID: ${ev.id} — ${ev.title}\n\n` +
-        'Reply with one of: title, date, format, venue, details, add_task, remove_task, done, cancel',
+        'Reply with one of: title, date, format, venue, details, status, add_task, remove_task, done, cancel',
         { parse_mode: 'Markdown' }
       );
       break;
     }
     case 'menu': {
       const choice = text.toLowerCase();
-      if (['title','date','format','venue','details'].includes(choice)) {
+      if (['title','date','format','venue','details','status'].includes(choice)) {
         state.field = choice as any;
         state.step = 'field_value';
         await ctx.reply(`Please enter new value for ${choice}.`);
@@ -198,6 +199,21 @@ export const handleEditEventWizard = async (ctx: Context) => {
           return;
         }
         fields.date = d.toISOString();
+      } else if (field === 'status') {
+        const statusInput = text.toLowerCase();
+        const validStatuses: Array<'planning' | 'published' | 'completed' | 'cancelled'> = ['planning','published','completed','cancelled'];
+        if (!validStatuses.includes(statusInput as any)) {
+          await ctx.reply('❌ Invalid status. Use one of: planning, published, completed, cancelled');
+          return;
+        }
+        const ok = await DrizzleDatabaseService.updateEventStatus(state.eventId!, statusInput as any);
+        if (ok) {
+          await ctx.reply('✅ Status updated. Type another option (title/date/format/venue/details/status/add_task/remove_task) or `done`/`cancel`.');
+          state.step = 'menu';
+        } else {
+          await ctx.reply('❌ Failed to update status. Try again.');
+        }
+        break;
       } else if (field === 'format') {
         fields.format = text.toLowerCase().replace(/\s+/g,'_');
       } else if (field === 'venue') {
@@ -209,7 +225,7 @@ export const handleEditEventWizard = async (ctx: Context) => {
       }
       const ok = await DrizzleDatabaseService.updateEventFields(state.eventId!, fields);
       if (ok) {
-        await ctx.reply('✅ Field updated. Type another option (title/date/format/venue/details/add_task/remove_task) or `done`.');
+        await ctx.reply('✅ Field updated. Type another option (title/date/format/venue/details/status/add_task/remove_task) or `done`/`cancel`.');
         state.step = 'menu';
       } else {
         await ctx.reply('❌ Failed to update field. Try again.');
