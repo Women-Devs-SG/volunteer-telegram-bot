@@ -48,7 +48,8 @@ async function seedData() {
     console.log('👑 Creating admin users...');
     const adminUsers = await db.insert(admins).values([
       { telegram_handle: 'admin_user', role: 'admin' },
-      { telegram_handle: 'super_admin', role: 'super_admin' }
+      { telegram_handle: 'super_admin', role: 'super_admin' },
+      { telegram_handle: 'your_telegram_handle', role: 'admin' } // Replace with your actual handle
     ]).returning();
 
     // Seed volunteers
@@ -59,35 +60,40 @@ async function seedData() {
         telegram_handle: 'alice_dev',
         status: 'active',
         commitments: 5,
-        probation_start_date: new Date('2024-01-15')
+        commit_count_start_date: new Date('2024-01-15'),
+        probation_end_date: null,
       },
       {
         name: 'Bob Smith',
         telegram_handle: 'bob_coder',
         status: 'lead',
         commitments: 8,
-        probation_start_date: new Date('2023-11-01')
+        commit_count_start_date: new Date('2023-11-01'),
+        probation_end_date: null,
       },
       {
         name: 'Carol Wilson',
         telegram_handle: 'carol_tech',
         status: 'probation',
         commitments: 1,
-        probation_start_date: new Date('2024-08-01')
+        commit_count_start_date: new Date('2024-08-01'),
+        probation_end_date: null,
       },
       {
         name: 'David Chen',
         telegram_handle: 'david_js',
         status: 'active',
         commitments: 4,
-        probation_start_date: new Date('2024-02-10')
+        commit_count_start_date: new Date('2024-02-10'),
+        probation_end_date: null,
       },
       {
         name: 'Eva Rodriguez',
         telegram_handle: 'eva_python',
         status: 'inactive',
         commitments: 0,
-        probation_start_date: new Date('2024-03-20')
+        commit_count_start_date: new Date('2024-03-20'),
+        probation_end_date: null,
       }
     ]).returning();
 
@@ -96,7 +102,7 @@ async function seedData() {
     const eventList = await db.insert(events).values([
       {
         title: 'React Workshop: Building Modern UIs',
-        date: new Date('2024-10-15T18:00:00Z'),
+        date: new Date('2025-12-15T18:00:00Z'),
         format: 'workshop',
         status: 'planning',
         venue: 'Tech Hub Singapore',
@@ -105,7 +111,7 @@ async function seedData() {
       },
       {
         title: 'Women in Tech Panel Discussion',
-        date: new Date('2024-11-02T19:00:00Z'),
+        date: new Date('2025-11-02T19:00:00Z'),
         format: 'panel',
         status: 'published',
         venue: 'Online (Zoom)',
@@ -114,16 +120,16 @@ async function seedData() {
       },
       {
         title: 'JavaScript Fundamentals Talk',
-        date: new Date('2024-09-28T17:30:00Z'),
+        date: new Date('2025-12-28T17:30:00Z'),
         format: 'talk',
-        status: 'completed',
+        status: 'planning',
         venue: 'NUS School of Computing',
         details: 'Introduction to JavaScript fundamentals for beginners.',
         created_by: volunteerUsers[3].id // David
       },
       {
         title: 'Monthly Community Hangout',
-        date: new Date('2024-10-30T20:00:00Z'),
+        date: new Date('2025-12-30T20:00:00Z'),
         format: 'hangout',
         status: 'planning',
         venue: 'Clarke Quay Central',
@@ -132,7 +138,7 @@ async function seedData() {
       },
       {
         title: 'AI/ML Conference 2024',
-        date: new Date('2024-12-15T09:00:00Z'),
+        date: new Date('2026-01-15T09:00:00Z'),
         format: 'conference',
         status: 'planning',
         venue: 'Marina Bay Sands Convention Centre',

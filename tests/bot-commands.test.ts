@@ -71,7 +71,7 @@ describe('Bot Commands', () => {
         telegram_handle: 'testuser',
         status: 'probation',
         commitments: 0,
-        probation_start_date: new Date().toISOString(),
+        commit_count_start_date: new Date().toISOString(),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       });
@@ -100,7 +100,7 @@ describe('Bot Commands', () => {
         telegram_handle: 'testuser',
         status: 'active',
         commitments: 5,
-        probation_start_date: new Date().toISOString(),
+        commit_count_start_date: new Date().toISOString(),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       });
@@ -128,7 +128,7 @@ describe('Bot Commands', () => {
           telegram_handle: 'vol1',
           status: 'active',
           commitments: 3,
-          probation_start_date: new Date().toISOString(),
+          commit_count_start_date: new Date().toISOString(),
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         },
@@ -138,7 +138,7 @@ describe('Bot Commands', () => {
           telegram_handle: 'vol2',
           status: 'probation',
           commitments: 1,
-          probation_start_date: new Date().toISOString(),
+          commit_count_start_date: new Date().toISOString(),
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         }

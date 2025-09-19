@@ -11,7 +11,8 @@ export const eventFormatEnum = pgEnum('event_format', [
   'meeting',
   'external_speaker',
   'newsletter',
-  'social_media_takeover',
+  'social_media_campaign',
+  'coding_project',
   'workshop',
   'panel',
   'others'
@@ -26,7 +27,8 @@ export const volunteers = pgTable('volunteers', {
   telegram_handle: text('telegram_handle').notNull().unique(),
   status: volunteerStatusEnum('status').notNull().default('probation'),
   commitments: integer('commitments').notNull().default(0),
-  probation_start_date: timestamp('probation_start_date', { withTimezone: true }).defaultNow(),
+  commit_count_start_date: timestamp('commit_count_start_date', { withTimezone: true }).defaultNow(),
+  probation_end_date: timestamp('probation_end_date', { withTimezone: true }),
   created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
   updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow()
 }, (table) => ({
