@@ -4,10 +4,22 @@ import { DrizzleDatabaseService } from './db-drizzle';
 // Import types from the types module
 import type { Volunteer, Event, Task, TaskAssignment } from './types';
 
-// Escape special characters for Telegram Markdown (v1) parse_mode
-// Only escape characters that affect formatting to prevent visible backslashes
-const escapeMarkdown = (text: string): string => {
-  return text.replace(/([_*\[\]`])/g, '\\$1');
+// Escape special characters for Telegram HTML parse_mode
+const escapeHtml = (text: string): string => {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+};
+
+// Human-friendly date like "18 Sep 2025"
+export const formatHumanDate = (dateLike: string | Date): string => {
+  const d = typeof dateLike === 'string' ? new Date(dateLike) : dateLike;
+  if (isNaN(d.getTime())) return '';
+  const day = d.getDate();
+  const month = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()];
+  const year = d.getFullYear();
+  return `${day} ${month} ${year}`;
 };
 
 // Check if volunteer is eligible for promotion
@@ -45,81 +57,103 @@ export const checkInactiveStatus = (volunteer: Volunteer): boolean => {
 export const formatVolunteerStatus = (volunteer: Volunteer): string => {
   const { isEligible, daysRemaining, commitmentsNeeded } = checkProbationStatus(volunteer);
   
-  const safeName = escapeMarkdown(volunteer.name);
-  const safeHandle = escapeMarkdown(volunteer.telegram_handle);
-  let statusText = `**${safeName}** (@${safeHandle})\n`;
+  const safeName = escapeHtml(volunteer.name);
+  const safeHandle = escapeHtml(volunteer.telegram_handle);
+  let statusText = `<b>${safeName}</b> (@${safeHandle})\n`;
   statusText += `Status: ${volunteer.status.toUpperCase()}\n`;
   const start = new Date(volunteer.commit_count_start_date);
-  const endText = volunteer.probation_end_date ? new Date(volunteer.probation_end_date).toLocaleDateString() : 'present';
-  statusText += `Commitments: ${volunteer.commitments} (Tracking: ${start.toLocaleDateString()} → ${endText})\n`;
+  const endText = volunteer.probation_end_date ? formatHumanDate(new Date(volunteer.probation_end_date)) : 'present';
+  statusText += `Commitments: ${volunteer.commitments} (Tracking: ${formatHumanDate(start)} → ${endText})\n`;
   
   if (volunteer.status === 'probation') {
     if (isEligible) {
-      statusText += `🎉 **Eligible for promotion to active volunteer!**\n`;
+      statusText += `🎉 <b>Eligible for promotion to active volunteer!</b>\n`;
     } else {
       statusText += `Probation period: ${daysRemaining} days remaining\n`;
       statusText += `Commitments needed: ${commitmentsNeeded}\n`;
     }
   } else if (volunteer.status === 'inactive') {
-    statusText += `⚠️ **Status: INACTIVE** - Contact an admin to reactivate\n`;
+    statusText += `⚠️ <b>Status: INACTIVE</b> - Contact an admin to reactivate\n`;
   }
   
   return statusText;
 };
 
+// Special handling for TBD event dates
+export const TBD_DATE = new Date(Date.UTC(2099, 11, 31, 0, 0, 0)); // 2099-12-31T00:00:00Z
+export const TBD_DATE_ISO = TBD_DATE.toISOString();
+export const isTbdDateIso = (dateIso: string): boolean => {
+  const d = new Date(dateIso);
+  return !isNaN(d.getTime()) && d.getTime() === TBD_DATE.getTime();
+};
+
 // Format event details for display
 export const formatEventDetails = async (event: Event, tasks?: Task[]): Promise<string> => {
-  const safeTitle = escapeMarkdown(event.title);
-  let eventText = `**${safeTitle}**\n`;
-  eventText += `📅 Date: ${new Date(event.date).toLocaleDateString()}\n`;
+  const safeTitle = escapeHtml(event.title);
+  let eventText = `<b>${safeTitle}</b>\n`;
+  const dateText = isTbdDateIso(event.date) ? 'TBD' : formatHumanDate(event.date);
+  eventText += `📅 Date: ${dateText}\n`;
   eventText += `🎯 Format: ${event.format.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}\n`;
   eventText += `📊 Status: ${event.status.replace(/\b\w/g, l => l.toUpperCase())}\n`;
   
   if (event.venue) {
-    eventText += `📍 Venue: ${escapeMarkdown(event.venue)}\n`;
+    eventText += `📍 Venue: ${escapeHtml(event.venue)}\n`;
   }
   
   if (event.details) {
-    eventText += `📝 Details: ${escapeMarkdown(event.details)}\n`;
+    eventText += `📝 Details: ${escapeHtml(event.details)}\n`;
   }
   
   if (tasks && tasks.length > 0) {
-    eventText += `\n**📋 Tasks:**\n`;
-    
+    // We'll decide header icon after we compute assignment status
+
+    // Enrich tasks with assignment info, then sort: unassigned first
+    const enriched = [] as Array<{
+      task: Task;
+      assignedTo: string[]; // formatted volunteer mentions
+    }>;
+
     for (const task of tasks) {
-      const statusIcon = task.status === 'complete' ? '✅' : task.status === 'in_progress' ? '🔄' : '❌';
-      const safeTaskTitle = escapeMarkdown(task.title);
-      eventText += `\n• **${safeTaskTitle}** (ID: **${task.id}**) ${statusIcon}\n`;
-      
-      // Get task assignments to show who is assigned
       const assignments = await DrizzleDatabaseService.getTaskAssignments(task.id);
-      
+      const assignedTo: string[] = [];
       if (assignments.length > 0) {
-        eventText += `  👤 Assigned to: `;
-        const assignedVolunteers = [];
         for (const assignment of assignments) {
-          // Get all volunteers and find the one with matching ID
           const allVolunteers = await DrizzleDatabaseService.getAllVolunteers();
           const volunteer = allVolunteers.find(v => v.id === assignment.volunteer_id);
           if (volunteer) {
-            const safeName = escapeMarkdown(volunteer.name);
-            const safeHandle = escapeMarkdown(volunteer.telegram_handle);
-            assignedVolunteers.push(`${safeName} (@${safeHandle})`);
+            const safeName = escapeHtml(volunteer.name);
+            const safeHandle = escapeHtml(volunteer.telegram_handle);
+            assignedTo.push(`${safeName} (@${safeHandle})`);
           }
         }
-        eventText += assignedVolunteers.join(', ') + '\n';
-      } else {
-        eventText += `  🔓 **Available for signup**\n`;
       }
-      
+      enriched.push({ task, assignedTo });
+    }
+
+    enriched.sort((a, b) => (a.assignedTo.length === 0 ? -1 : 1) - (b.assignedTo.length === 0 ? -1 : 1));
+
+    const anyUnassigned = enriched.some(e => e.assignedTo.length === 0);
+    eventText += `\n<b>📝 Tasks:</b>\n`;
+
+    for (const item of enriched) {
+      const { task, assignedTo } = item;
+      const safeTaskTitle = escapeHtml(task.title);
+      const assigned = assignedTo.length > 0;
+      eventText += `\n• <b>${safeTaskTitle}</b> (ID: <b>${task.id}</b>)\n`;
+      eventText += `  Status: ${task.status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}\n`;
+      if (assigned) {
+        eventText += `  👤 Assigned to: ${assignedTo.join(', ')}\n`;
+      } else {
+        eventText += `  ⚠️ Open for signup\n`;
+      }
       if (task.description) {
-        eventText += `  📄 ${escapeMarkdown(task.description)}\n`;
+        eventText += `  📄 ${escapeHtml(task.description)}\n`;
       }
     }
-    
-    eventText += `\n💡 **How to volunteer:**\n`;
-    eventText += `• Use \`/commit <task_id>\` to sign up for an available task\n`;
-    eventText += `• Example: \`/commit 5\` to volunteer for task ID 5\n`;
+
+    eventText += `\n💡 <b>How to volunteer:</b>\n`;
+    eventText += `• Use <code>/commit &lt;task_id&gt;</code> to sign up for an available task\n`;
+    eventText += `• Example: <code>/commit 5</code> to volunteer for task ID 5\n`;
     eventText += `• Only unassigned tasks are available for signup`;
   } else {
     eventText += `\n📋 No tasks created for this event yet.`;
@@ -137,16 +171,16 @@ export const sendPromotionBroadcast = async (bot: Bot, volunteer: Volunteer): Pr
     return;
   }
   
-  const safeName = escapeMarkdown(volunteer.name);
-  const safeHandle = escapeMarkdown(volunteer.telegram_handle);
-  const message = `🎉 **Congratulations!** 🎉\n\n` +
+  const safeName = escapeHtml(volunteer.name);
+  const safeHandle = escapeHtml(volunteer.telegram_handle);
+  const message = `🎉 <b>Congratulations!</b> 🎉\n\n` +
     `${safeName} (@${safeHandle}) has successfully completed their probation period ` +
-    `and is now an **active volunteer**!\n\n` +
+    `and is now an <b>active volunteer</b>!\n\n` +
     `They completed ${volunteer.commitments} commitments and are ready to take on more responsibilities. ` +
     `Welcome to the team! 🚀`;
   
   try {
-    const options: any = { parse_mode: 'Markdown' };
+    const options: any = { parse_mode: 'HTML' };
     await bot.api.sendMessage(groupId, message, options);
   } catch (error) {
     console.error('Error sending promotion broadcast:', error);
@@ -277,49 +311,49 @@ export const processMonthlyVolunteerStatus = async (bot: Bot): Promise<string> =
     // Generate status report
     const report = await DrizzleDatabaseService.getVolunteerStatusReport();
     
-    let message = `📊 **Monthly Volunteer Status Report**\n\n`;
-    message += `**Status Updates:**\n`;
+    let message = `📊 <b>Monthly Volunteer Status Report</b>\n\n`;
+    message += `<b>Status Updates:</b>\n`;
     message += `• ${updated} volunteers had status changes\n`;
     message += `• ${inactive} volunteers marked as inactive\n\n`;
     
-    message += `**Current Volunteer Breakdown:**\n`;
-    message += `👥 **Total Volunteers:** ${report.total}\n\n`;
+    message += `<b>Current Volunteer Breakdown:</b>\n`;
+    message += `👥 <b>Total Volunteers:</b> ${report.total}\n\n`;
     
     if (report.lead.length > 0) {
-      message += `🌟 **Lead Volunteers (${report.lead.length}):**\n`;
+      message += `🌟 <b>Lead Volunteers (${report.lead.length}):</b>\n`;
       report.lead.forEach(v => {
-        const safeName = escapeMarkdown(v.name);
-        const safeHandle = escapeMarkdown(v.telegram_handle);
+        const safeName = escapeHtml(v.name);
+        const safeHandle = escapeHtml(v.telegram_handle);
         message += `• ${safeName} (@${safeHandle})\n`;
       });
       message += `\n`;
     }
     
     if (report.active.length > 0) {
-      message += `✅ **Active Volunteers (${report.active.length}):**\n`;
+      message += `✅ <b>Active Volunteers (${report.active.length}):</b>\n`;
       report.active.forEach(v => {
-        const safeName = escapeMarkdown(v.name);
-        const safeHandle = escapeMarkdown(v.telegram_handle);
+        const safeName = escapeHtml(v.name);
+        const safeHandle = escapeHtml(v.telegram_handle);
         message += `• ${safeName} (@${safeHandle}) - ${v.commitments} commitments\n`;
       });
       message += `\n`;
     }
     
     if (report.probation.length > 0) {
-      message += `🔄 **Probation Volunteers (${report.probation.length}):**\n`;
+      message += `🔄 <b>Probation Volunteers (${report.probation.length}):</b>\n`;
       report.probation.forEach(v => {
-        const safeName = escapeMarkdown(v.name);
-        const safeHandle = escapeMarkdown(v.telegram_handle);
+        const safeName = escapeHtml(v.name);
+        const safeHandle = escapeHtml(v.telegram_handle);
         message += `• ${safeName} (@${safeHandle}) - ${v.commitments} commitments\n`;
       });
       message += `\n`;
     }
     
     if (report.inactive.length > 0) {
-      message += `⚠️ **Inactive Volunteers (${report.inactive.length}):**\n`;
+      message += `⚠️ <b>Inactive Volunteers (${report.inactive.length}):</b>\n`;
       report.inactive.forEach(v => {
-        const safeName = escapeMarkdown(v.name);
-        const safeHandle = escapeMarkdown(v.telegram_handle);
+        const safeName = escapeHtml(v.name);
+        const safeHandle = escapeHtml(v.telegram_handle);
         message += `• ${safeName} (@${safeHandle}) - ${v.commitments} commitments\n`;
       });
       message += `\n`;
@@ -344,6 +378,7 @@ export const filterFutureEvents = (events: Event[]): Event[] => {
   today.setHours(0, 0, 0, 0); // Start of today
   
   return events.filter(event => {
+    if (isTbdDateIso(event.date)) return true; // Always include TBD events
     const eventDate = new Date(event.date);
     eventDate.setHours(0, 0, 0, 0); // Start of event day
     return eventDate >= today;

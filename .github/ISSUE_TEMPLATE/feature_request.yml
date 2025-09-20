@@ -1,0 +1,54 @@
+name: Feature request
+description: Suggest an idea for this project
+labels: [enhancement]
+title: "feat: <short description>"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature! Please provide as much detail as possible.
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+      description: A concise description of the feature
+      placeholder: Support interactive onboarding pages with images
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation / Problem
+      description: What problem does this feature solve? Why is it valuable?
+      placeholder: Our contributors want to add richer onboarding content, including images.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe how you think this should be implemented
+      placeholder: |
+        1. Add support for a metadata file per page (YAML)
+        2. Allow optional image attachments via Telegram
+        3. Fallback to HTML-only rendering when images are not provided
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other ways to solve this problem
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - label: This is backward compatible
+        - label: Requires database changes
+        - label: Requires documentation updates
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Links, references, screenshots

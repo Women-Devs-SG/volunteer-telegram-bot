@@ -535,4 +535,43 @@ export const removeAssignmentCommand = async (ctx: CommandContext<Context>) => {
   }
 };
 
-// Removed duplicate erroneous setStatusCommand block
+// /remove_admin command - remove an admin by handle (admin only)
+export const removeAdminCommand = async (ctx: CommandContext<Context>) => {
+  const callerHandle = ctx.from?.username;
+  if (!callerHandle) {
+    await ctx.reply('❌ Please set a Telegram username to use admin commands.');
+    return;
+  }
+
+  const callerIsAdmin = await DrizzleDatabaseService.isAdmin(callerHandle);
+  if (!callerIsAdmin) {
+    await ctx.reply('❌ You are not authorized to use admin commands.');
+    return;
+  }
+
+  const handleInput = ctx.match?.toString().trim();
+  if (!handleInput) {
+    await ctx.reply('❌ **Usage:** `/remove_admin @handle`', { parse_mode: 'Markdown' });
+    return;
+  }
+
+  const targetHandle = validateTelegramHandle(handleInput || '');
+  if (!targetHandle) {
+    await ctx.reply('❌ Invalid Telegram handle format.');
+    return;
+  }
+
+  // Prevent removing if target is not currently an admin
+  const targetIsAdmin = await DrizzleDatabaseService.isAdmin(targetHandle);
+  if (!targetIsAdmin) {
+    await ctx.reply(`ℹ️ @${targetHandle} is not an admin.`);
+    return;
+  }
+
+  const success = await DrizzleDatabaseService.removeAdmin(targetHandle);
+  if (success) {
+    await ctx.reply(`✅ Admin @${targetHandle} has been removed.`);
+  } else {
+    await ctx.reply('❌ Failed to remove admin. Please try again.');
+  }
+};

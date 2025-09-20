@@ -1,10 +1,126 @@
 import { Context, CommandContext } from 'grammy';
 import { DrizzleDatabaseService } from '../db-drizzle';
+import { formatEventDetails, formatHumanDate } from '../utils';
+
+// Escape special characters for Telegram HTML parse_mode
+const escapeHtml = (text: string): string => {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+};
 
 // Escape special characters for Telegram Markdown (v1) parse_mode
 // Only escape characters that affect formatting to prevent visible backslashes
 const escapeMarkdown = (text: string): string => {
   return text.replace(/([_*\[\]`])/g, '\\$1');
+};
+
+// /broadcast_event_details <event_id> - broadcast details of a single event
+export const broadcastEventDetailsCommand = async (ctx: CommandContext<Context>) => {
+  const { groupId } = getGroupInfo('VOLUNTEER_GROUP_ID');
+  if (!groupId) {
+    await ctx.reply('❌ No volunteer group configured. Please set VOLUNTEER_GROUP_ID in environment variables.');
+    return;
+  }
+
+  const callerHandle = ctx.from?.username;
+  if (!callerHandle) {
+    await ctx.reply('❌ Please set a Telegram username to use this command.');
+    return;
+  }
+
+  const arg = ctx.match?.toString().trim();
+  if (!arg) {
+    await ctx.reply('❌ Usage: `/broadcast_event_details <event_id>`', { parse_mode: 'Markdown' });
+    return;
+  }
+  const eventId = parseInt(arg, 10);
+  if (isNaN(eventId)) {
+    await ctx.reply('❌ Invalid event ID.');
+    return;
+  }
+
+  try {
+    const event = await DrizzleDatabaseService.getEvent(eventId);
+    if (!event) {
+      await ctx.reply('❌ Event not found.');
+      return;
+    }
+    // Permission: admins can broadcast any; non-admins only their own events
+    const isAdmin = await DrizzleDatabaseService.isAdmin(callerHandle);
+    if (!isAdmin) {
+      const me = await DrizzleDatabaseService.getVolunteerByHandle(callerHandle);
+      if (!me || event.created_by !== me.id) {
+        await ctx.reply('❌ You can only broadcast events you created.');
+        return;
+      }
+    }
+
+    // Save pending confirmation and prompt
+    const userId = ctx.from?.id;
+    if (!userId) {
+      await ctx.reply('❌ Unable to identify user.');
+      return;
+    }
+    broadcastConfirmState.set(userId, { eventId });
+    await ctx.reply(
+      `📣 You are about to broadcast event ID <b>${eventId}</b> to the group.\n\n` +
+      'Type <b>YES</b> to confirm, or <b>CANCEL</b> to abort.',
+      { parse_mode: 'HTML' }
+    );
+  } catch (error) {
+    console.error('Error preparing broadcast event details:', error);
+    await ctx.reply('❌ Failed to prepare broadcast. Please check the logs.');
+  }
+};
+
+// Pending confirmations keyed by user id
+const broadcastConfirmState = new Map<number, { eventId: number }>();
+
+// Handle confirmation replies for broadcast_event_details
+export const handleBroadcastEventDetailsConfirmation = async (ctx: Context) => {
+  const userId = ctx.from?.id;
+  const text = ctx.message?.text?.trim();
+  if (!userId || !text) return;
+  const pending = broadcastConfirmState.get(userId);
+  if (!pending) return;
+
+  const choice = text.toLowerCase();
+  if (choice === 'cancel') {
+    broadcastConfirmState.delete(userId);
+    await ctx.reply('✅ Broadcast cancelled.');
+    return;
+  }
+  if (choice !== 'yes' && choice !== 'confirm') {
+    await ctx.reply('❌ Please reply with YES to confirm or CANCEL to abort.');
+    return;
+  }
+
+  // Proceed with broadcast
+  try {
+    const { groupId } = getGroupInfo('VOLUNTEER_GROUP_ID');
+    if (!groupId) {
+      await ctx.reply('❌ No volunteer group configured. Please set VOLUNTEER_GROUP_ID in environment variables.');
+      broadcastConfirmState.delete(userId);
+      return;
+    }
+    const event = await DrizzleDatabaseService.getEvent(pending.eventId);
+    if (!event) {
+      await ctx.reply('❌ Event not found.');
+      broadcastConfirmState.delete(userId);
+      return;
+    }
+    const tasks = await DrizzleDatabaseService.getEventTasks(pending.eventId);
+    const details = await formatEventDetails(event, tasks);
+    await ctx.api.sendMessage(groupId, `📢 <b>Event Announcement</b>\n\n${details}`, { parse_mode: 'HTML' });
+    await ctx.reply('✅ Event details broadcast sent successfully!');
+  } catch (error) {
+    console.error('Error sending broadcast event details:', error);
+    await ctx.reply('❌ Failed to send broadcast. Please check the logs.');
+  } finally {
+    broadcastConfirmState.delete(userId);
+  }
 };
 
 // Helper function to get target group from environment
@@ -38,65 +154,64 @@ export const broadcastVolunteersCommand = async (ctx: CommandContext<Context>) =
   }
   
   try {
-    // Get volunteer status report
     const volunteers = await DrizzleDatabaseService.getAllVolunteers();
     
     if (volunteers.length === 0) {
       await ctx.reply('❌ No volunteers to broadcast.');
       return;
     }
-    
-    let broadcastMessage = '📋 *Current Volunteer Status*\n\n';
-    
-    // Group volunteers by status
+
+    let message = '📋 <b>All Volunteers</b>\n\n';
+    const ref = volunteers[0]! as any;
+    const refStart = ref.commit_count_start_date ? formatHumanDate(new Date(ref.commit_count_start_date)) : formatHumanDate(new Date(ref.updated_at));
+    const refEndText = ref.probation_end_date ? formatHumanDate(new Date(ref.probation_end_date)) : 'present';
+    message += `📅 Tracking period: ${refStart} → ${refEndText}\n\n`;
+
     const probationVolunteers = volunteers.filter(v => v.status === 'probation');
     const activeVolunteers = volunteers.filter(v => v.status === 'active');
     const leadVolunteers = volunteers.filter(v => v.status === 'lead');
     const inactiveVolunteers = volunteers.filter(v => v.status === 'inactive');
-    
+
     if (probationVolunteers.length > 0) {
-      broadcastMessage += '*🟡 Probation Volunteers:*\n';
-      probationVolunteers.forEach(volunteer => {
-        const safeName = escapeMarkdown(volunteer.name);
-        const start = new Date((volunteer as any).commit_count_start_date || volunteer.updated_at);
-        const endText = (volunteer as any).probation_end_date ? new Date((volunteer as any).probation_end_date).toLocaleDateString() : 'present';
-        broadcastMessage += `• ${safeName} - ${volunteer.commitments}/3 commitments (Tracking: ${start.toLocaleDateString()} → ${endText})\n`;
+      message += '🟡 <b>Probation Volunteers:</b>\n';
+      probationVolunteers.forEach(v => {
+        const safeName = escapeHtml(v.name);
+        const safeHandle = escapeHtml(v.telegram_handle);
+        message += `• ${safeName} (@${safeHandle}) - ${v.commitments}/3 commitments\n`;
       });
-      broadcastMessage += '\n';
+      message += '\n';
     }
-    
+
     if (activeVolunteers.length > 0) {
-      broadcastMessage += '*🟢 Active Volunteers:*\n';
-      activeVolunteers.forEach(volunteer => {
-        const safeName = escapeMarkdown(volunteer.name);
-        const start = new Date((volunteer as any).commit_count_start_date || volunteer.updated_at);
-        const endText = (volunteer as any).probation_end_date ? new Date((volunteer as any).probation_end_date).toLocaleDateString() : 'present';
-        broadcastMessage += `• ${safeName} - ${volunteer.commitments} commitments (Tracking: ${start.toLocaleDateString()} → ${endText})\n`;
+      message += '🟢 <b>Active Volunteers:</b>\n';
+      activeVolunteers.forEach(v => {
+        const safeName = escapeHtml(v.name);
+        const safeHandle = escapeHtml(v.telegram_handle);
+        message += `• ${safeName} (@${safeHandle}) - ${v.commitments} commitments\n`;
       });
-      broadcastMessage += '\n';
+      message += '\n';
     }
-    
-    if (leadVolunteers.length > 0) {
-      broadcastMessage += '*⭐ Lead Volunteers:*\n';
-      leadVolunteers.forEach(volunteer => {
-        const safeName = escapeMarkdown(volunteer.name);
-        broadcastMessage += `• ${safeName} - ${volunteer.commitments} commitments\n`;
-      });
-      broadcastMessage += '\n';
-    }
-    
+
     if (inactiveVolunteers.length > 0) {
-      broadcastMessage += '*⚫ Inactive Volunteers:*\n';
-      inactiveVolunteers.forEach(volunteer => {
-        const safeName = escapeMarkdown(volunteer.name);
-        const start = new Date((volunteer as any).commit_count_start_date || volunteer.updated_at);
-        const endText = (volunteer as any).probation_end_date ? new Date((volunteer as any).probation_end_date).toLocaleDateString() : 'present';
-        broadcastMessage += `• ${safeName} - ${volunteer.commitments} commitments (Tracking: ${start.toLocaleDateString()} → ${endText})\n`;
+      message += '⚫ <b>Inactive Volunteers:</b>\n';
+      inactiveVolunteers.forEach(v => {
+        const safeName = escapeHtml(v.name);
+        const safeHandle = escapeHtml(v.telegram_handle);
+        message += `• ${safeName} (@${safeHandle}) - ${v.commitments} commitments\n`;
+      });
+      message += '\n';
+    }
+
+    if (leadVolunteers.length > 0) {
+      message += '⭐ <b>Lead Volunteers:</b>\n';
+      leadVolunteers.forEach(v => {
+        const safeName = escapeHtml(v.name);
+        const safeHandle = escapeHtml(v.telegram_handle);
+        message += `• ${safeName} (@${safeHandle}) - ${v.commitments} commitments\n`;
       });
     }
-    
-    const options: any = { parse_mode: 'Markdown' };
-    await ctx.api.sendMessage(groupId, broadcastMessage, options);
+
+    await ctx.api.sendMessage(groupId, message, { parse_mode: 'HTML' });
     await ctx.reply('✅ Volunteer status broadcast sent successfully!');
     
   } catch (error) {

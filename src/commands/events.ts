@@ -4,9 +4,11 @@ import { Event } from '../types';
 import { 
   parseDate, 
   formatEventDetails,
-  formatTaskStatus,
-  filterFutureEvents
+  TBD_DATE_ISO,
+  isTbdDateIso,
+  formatHumanDate
 } from '../utils';
+
 import { getRequiredTasks, getAllTaskTemplates, formatTaskTemplatesForSelection } from '../utils/task-templates';
 
 // Store conversation state for interactive wizards
@@ -36,15 +38,15 @@ export const createEventCommand = async (ctx: CommandContext<Context>) => {
     return;
   }
 
-  // Check if user is an admin
-  const isAdmin = await DrizzleDatabaseService.isAdmin(telegramHandle);
-  if (!isAdmin) {
-    await ctx.reply('❌ Only admins can create events. Please contact an administrator.');
-    return;
+  // Ensure we have a volunteer record for the creator
+  let creator = await DrizzleDatabaseService.getVolunteerByHandle(telegramHandle);
+  if (!creator) {
+    // Create a placeholder volunteer record for this handle
+    creator = await DrizzleDatabaseService.createVolunteer(telegramHandle, telegramHandle, 'probation');
   }
 
-  // Initialize conversation state
-  conversationState.set(userId, { step: 'title' });
+  // Initialize conversation state and stash creator id
+  conversationState.set(userId, { step: 'title', createdBy: creator?.id });
   
   await ctx.reply(
     '🎯 **Event Creation Wizard**\n\n' +
@@ -68,10 +70,7 @@ export const editEventCommand = async (ctx: CommandContext<Context>) => {
   }
 
   const isAdmin = await DrizzleDatabaseService.isAdmin(telegramHandle);
-  if (!isAdmin) {
-    await ctx.reply('❌ Only admins can edit events. Please contact an administrator.');
-    return;
-  }
+  const currentVolunteer = await DrizzleDatabaseService.getVolunteerByHandle(telegramHandle);
 
   const arg = ctx.match?.toString().trim();
   let eventId: number | null = null;
@@ -94,22 +93,29 @@ export const editEventCommand = async (ctx: CommandContext<Context>) => {
     editEventState.delete(userId);
     return;
   }
+  // Permission: admins can edit all; non-admins only if they created it
+  if (!isAdmin) {
+    if (!currentVolunteer || event.created_by !== currentVolunteer.id) {
+      await ctx.reply('❌ You can only edit events you created.');
+      return;
+    }
+  }
   editEventState.set(userId, { step: 'menu', eventId });
   await ctx.reply(
-    '**Edit Event**\n' +
+    `<b>Edit Event</b>\n` +
     `ID: ${event.id} — ${event.title}\n\n` +
     'Reply with one of the following options:\n' +
     '• title\n' +
-    '• date (YYYY-MM-DD)\n' +
+    '• date (YYYY-MM-DD or TBD)\n' +
     '• format (talk/workshop/...)\n' +
     '• venue\n' +
     '• details\n' +
     '• status (planning/published/completed/cancelled)\n' +
-    '• add_task\n' +
-    '• remove_task\n' +
+    '• <code>add_task</code> \n' +
+    '• <code>remove_task</code> \n' +
     '• done\n' +
     '• cancel',
-    { parse_mode: 'Markdown' }
+    { parse_mode: 'HTML' }
   );
 };
 
@@ -131,7 +137,7 @@ export const handleEditEventWizard = async (ctx: Context) => {
       const tasks = await DrizzleDatabaseService.getEventTasks(state.eventId);
       if (ev) {
         const details = await formatEventDetails(ev, tasks);
-        await ctx.reply(`✅ Edit complete.\n\n${details}`, { parse_mode: 'Markdown' });
+        await ctx.reply(`✅ Edit complete.\n\n${details}`, { parse_mode: 'HTML' });
       }
     }
     editEventState.delete(userId);
@@ -151,13 +157,23 @@ export const handleEditEventWizard = async (ctx: Context) => {
         await ctx.reply('❌ Event not found. Please provide a valid event ID.');
         return;
       }
+      // Permission check for non-admins
+      const telegramHandle = ctx.from?.username;
+      const isAdmin = telegramHandle ? await DrizzleDatabaseService.isAdmin(telegramHandle) : false;
+      if (!isAdmin) {
+        const me = telegramHandle ? await DrizzleDatabaseService.getVolunteerByHandle(telegramHandle) : null;
+        if (!me || ev.created_by !== me.id) {
+          await ctx.reply('❌ You can only edit events you created.');
+          return;
+        }
+      }
       state.eventId = n;
       state.step = 'menu';
       await ctx.reply(
-        '**Edit Event**\n' +
+        `<b>Edit Event</b>\n` +
         `ID: ${ev.id} — ${ev.title}\n\n` +
-        'Reply with one of: title, date, format, venue, details, status, add_task, remove_task, done, cancel',
-        { parse_mode: 'Markdown' }
+        'Reply with one of: title, date, format, venue, details, status, <code>add_task</code>, <code>remove_task</code>, done, cancel',
+        { parse_mode: 'HTML' }
       );
       break;
     }
@@ -166,7 +182,11 @@ export const handleEditEventWizard = async (ctx: Context) => {
       if (['title','date','format','venue','details','status'].includes(choice)) {
         state.field = choice as any;
         state.step = 'field_value';
-        await ctx.reply(`Please enter new value for ${choice}.`);
+        if (choice === 'date') {
+          await ctx.reply('Please enter new value for date (YYYY-MM-DD or type "TBD" to set as unknown, or type "skip" to leave unchanged).');
+        } else {
+          await ctx.reply(`Please enter new value for ${choice}.`);
+        }
         return;
       }
       if (choice === 'add_task') {
@@ -186,19 +206,29 @@ export const handleEditEventWizard = async (ctx: Context) => {
         }
         return;
       }
-      await ctx.reply('❌ Invalid option. Choose: title, date, format, venue, details, add_task, remove_task, done, cancel');
+      await ctx.reply('❌ Invalid option. Choose: title, date, format, venue, details, add\_task, remove\_task, done, cancel');
       break;
     }
     case 'field_value': {
       const field = state.field!;
       const fields: any = {};
       if (field === 'date') {
-        const d = parseDate(text);
-        if (!d) {
-          await ctx.reply('❌ Invalid date. Please use YYYY-MM-DD or try again.');
-          return;
+        const lower = text.toLowerCase();
+        if (lower === 'skip') {
+          await ctx.reply('↩️ No changes made to date. Type another option or `done`.');
+          state.step = 'menu';
+          break;
         }
-        fields.date = d.toISOString();
+        if (lower === 'tbd') {
+          fields.date = TBD_DATE_ISO;
+        } else {
+          const d = parseDate(text);
+          if (!d) {
+            await ctx.reply('❌ Invalid date. Please use YYYY-MM-DD, or type "TBD" to set as unknown.');
+            return;
+          }
+          fields.date = d.toISOString();
+        }
       } else if (field === 'status') {
         const statusInput = text.toLowerCase();
         const validStatuses: Array<'planning' | 'published' | 'completed' | 'cancelled'> = ['planning','published','completed','cancelled'];
@@ -208,7 +238,7 @@ export const handleEditEventWizard = async (ctx: Context) => {
         }
         const ok = await DrizzleDatabaseService.updateEventStatus(state.eventId!, statusInput as any);
         if (ok) {
-          await ctx.reply('✅ Status updated. Type another option (title/date/format/venue/details/status/add_task/remove_task) or `done`/`cancel`.');
+          await ctx.reply('✅ Status updated. Type another option (title/date/format/venue/details/status/add\_task/remove\_task) or `done`/`cancel`.');
           state.step = 'menu';
         } else {
           await ctx.reply('❌ Failed to update status. Try again.');
@@ -225,7 +255,7 @@ export const handleEditEventWizard = async (ctx: Context) => {
       }
       const ok = await DrizzleDatabaseService.updateEventFields(state.eventId!, fields);
       if (ok) {
-        await ctx.reply('✅ Field updated. Type another option (title/date/format/venue/details/status/add_task/remove_task) or `done`/`cancel`.');
+        await ctx.reply('✅ Field updated. Type another option (title/date/format/venue/details/status/add\_task/remove\_task) or `done`/`cancel`.');
         state.step = 'menu';
       } else {
         await ctx.reply('❌ Failed to update field. Try again.');
@@ -288,19 +318,26 @@ export const handleEventWizard = async (ctx: Context) => {
         'Please provide the date in one of these formats:\n' +
         '• YYYY-MM-DD (e.g., 2024-03-15)\n' +
         '• DD/MM/YYYY (e.g., 15/03/2024)\n' +
-        '• Natural language (e.g., "next Friday", "March 15th")',
+        '• Natural language (e.g., "next Friday", "March 15th")\n' +
+        '• Or type "TBD" if the date is not confirmed yet',
         { parse_mode: 'Markdown' }
       );
       break;
 
     case 'date':
-      const parsedDate = parseDate(text);
-      if (!parsedDate) {
-        await ctx.reply('❌ Invalid date format. Please try again with a valid date.');
-        return;
+      {
+        const lower = text.toLowerCase();
+        if (lower === 'tbd' || lower === 'skip') {
+          state.date = TBD_DATE_ISO;
+        } else {
+          const parsedDate = parseDate(text);
+          if (!parsedDate) {
+            await ctx.reply('❌ Invalid date format. Please try again with a valid date or type "TBD".');
+            return;
+          }
+          state.date = parsedDate.toISOString();
+        }
       }
-      
-      state.date = parsedDate.toISOString();
       state.step = 'format';
       await ctx.reply(
         '**Step 3/6:** What is the event format?\n\n' +
@@ -426,7 +463,8 @@ export const handleEventWizard = async (ctx: Context) => {
         state.date,
         state.format,
         state.details,
-        state.venue
+        state.venue,
+        state.createdBy
       );
       
       if (!event) {
@@ -460,20 +498,21 @@ export const handleEventWizard = async (ctx: Context) => {
       // Clear conversation state
       conversationState.delete(userId);
       
-      let successMessage = `✅ **Event created successfully!**\n\n`;
-      successMessage += formatEventDetails(event, createdTasks);
-      successMessage += `\nEvent ID: **${event.id}**\n`;
+      let successMessage = `✅ <b>Event created successfully!</b>\n\n`;
+      const createdDetails = await formatEventDetails(event, createdTasks);
+      successMessage += createdDetails;
+      successMessage += `\nEvent ID: <b>${event.id}</b>\n`;
       if (createdTasks.length > 0) {
-        successMessage += `\n**Task IDs for reference:**\n`;
+        successMessage += `\n<b>Task IDs for reference:</b>\n`;
         createdTasks.forEach(task => {
-          successMessage += `• ${task.title}: **${task.id}**\n`;
+          successMessage += `• ${task.title}: <b>${task.id}</b>\n`;
         });
-        successMessage += `\nUse \`/assign_task <task_id> @volunteer\` to assign volunteers to tasks.`;
+        successMessage += `\nUse <code>/assign_task &lt;task_id&gt; @volunteer</code> to assign volunteers to tasks.`;
       } else {
         successMessage += `\nNo tasks were created for this event.`;
       }
       
-      await ctx.reply(successMessage, { parse_mode: 'Markdown' });
+      await ctx.reply(successMessage, { parse_mode: 'HTML' });
       break;
 
     case 'custom_task_title': {
@@ -574,20 +613,35 @@ export const handleRemoveEventConfirmation = async (ctx: Context) => {
 // /list_events command - list upcoming events with simplified format
 export const listEventsCommand = async (ctx: CommandContext<Context>) => {
   const allEvents = await DrizzleDatabaseService.getAllEvents();
-  // Temporarily show all events until dates are updated
-  const events = allEvents; // filterFutureEvents(allEvents);
+  // Sort chronologically by event date (TBD sentinel will naturally go last)
+  const events = [...allEvents].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   if (!events || events.length === 0) {
     await ctx.reply('📅 No upcoming events found.');
     return;
   }
 
-  let message = '📅 **Upcoming Events:**\n\n';
+  let message = '📅 <b>Upcoming Events:</b>\n\n';
+  const formatEmoji: Record<string, string> = {
+    talk: '🎤',
+    workshop: '🛠️',
+    moderated_discussion: '🗣️',
+    conference: '🏛️',
+    hangout: '☕',
+    meeting: '📎',
+    external_speaker: '🌐',
+    newsletter: '📰',
+    social_media_campaign: '📣',
+    coding_project: '💻',
+    panel: '👥',
+    others: '📌',
+  };
   
   for (const event of events) {
     const tasks = await DrizzleDatabaseService.getEventTasks(event.id);
-    const statusIcon = event.status === 'published' ? '🟢' : event.status === 'planning' ? '🟡' : '🔴';
-    
+    const emoji = formatEmoji[event.format] || '📌';
+    const dateText = isTbdDateIso(event.date) ? 'TBD' : formatHumanDate(event.date);
+
     // Count unassigned tasks by checking task assignments
     let unassignedCount = 0;
     for (const task of tasks) {
@@ -598,15 +652,16 @@ export const listEventsCommand = async (ctx: CommandContext<Context>) => {
     }
     const totalTasks = tasks.length;
     
-    message += `${statusIcon} **${event.title}** (ID: ${event.id})\n`;
-    message += `📊 Status: ${event.status}`;
+    message += `${emoji} <b>${event.title}</b> (ID: ${event.id})\n`;
+    message += `Date: ${dateText} | Status: ${event.status}`;
     if (event.venue) {
       message += ` | 📍 ${event.venue}`;
     }
     message += `\n`;
     
     if (totalTasks > 0) {
-      message += `📋 Tasks: ${unassignedCount} unassigned out of ${totalTasks} total\n`;
+      const unassignedText = unassignedCount > 0 ? `⚠️ <b>${unassignedCount}</b>` : `✅ ${unassignedCount}`;
+      message += `Tasks: ${unassignedText}/${totalTasks} tasks needing volunteers \n`;
     } else {
       message += `📋 No tasks created yet\n`;
     }
@@ -614,11 +669,11 @@ export const listEventsCommand = async (ctx: CommandContext<Context>) => {
     message += '\n';
   }
 
-  message += '💡 **Quick Commands:**\n';
-  message += '• `/commit <task_id>` - Sign up for a task\n';
-  message += '• `/event_details <event_id>` - View detailed event info';
+  message += '💡 <b>Quick Commands:</b>\n';
+  message += '• <code>/commit &lt;task_id&gt;</code> - Sign up for a task\n';
+  message += '• <code>/event_details &lt;event_id&gt;</code> - View detailed event info and tasks';
 
-  await ctx.reply(message, { parse_mode: 'Markdown' });
+  await ctx.reply(message, { parse_mode: 'HTML' });
 };
 
 // /event_details command - show detailed event information
@@ -650,8 +705,25 @@ export const eventDetailsCommand = async (ctx: CommandContext<Context>) => {
 
   const tasks = await DrizzleDatabaseService.getEventTasks(eventId);
   const eventDetails = await formatEventDetails(event, tasks);
-  
-  await ctx.reply(`📅 **Event Details:**\n\n${eventDetails}`, { parse_mode: 'Markdown' });
+
+  // Determine if requester can broadcast: admin or event creator
+  const requesterHandle = ctx.from?.username;
+  let canBroadcast = false;
+  if (requesterHandle) {
+    const isAdmin = await DrizzleDatabaseService.isAdmin(requesterHandle);
+    if (isAdmin) {
+      canBroadcast = true;
+    } else {
+      const me = await DrizzleDatabaseService.getVolunteerByHandle(requesterHandle);
+      if (me && event.created_by === me.id) canBroadcast = true;
+    }
+  }
+
+  let message = `📅 <b>Event Details:</b>\n\n${eventDetails}`;
+  if (canBroadcast) {
+    message += `\n\n📣 <b>Quick Action:</b> Use <code>/broadcast_event_details ${event.id}</code> to announce this event to the group.`;
+  }
+  await ctx.reply(message, { parse_mode: 'HTML' });
 };
 
 
