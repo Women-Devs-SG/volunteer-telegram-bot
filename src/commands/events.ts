@@ -14,7 +14,7 @@ import { getRequiredTasks, getAllTaskTemplates, formatTaskTemplatesForSelection 
 // Store conversation state for interactive wizards
 const conversationState = new Map<number, any>();
 const editEventState = new Map<number, {
-  step: 'await_id' | 'menu' | 'field_value' | 'add_task_title' | 'add_task_desc' | 'remove_task';
+  step: 'await_id' | 'menu' | 'field_value' | 'add_task_title' | 'add_task_desc' | 'remove_task' | 'update_task_status_task' | 'update_task_status_value';
   eventId?: number;
   field?: 'title' | 'date' | 'format' | 'venue' | 'details' | 'status';
   pendingTask?: { title: string; description?: string };
@@ -113,6 +113,7 @@ export const editEventCommand = async (ctx: CommandContext<Context>) => {
     '• status (planning/published/completed/cancelled)\n' +
     '• <code>add_task</code> \n' +
     '• <code>remove_task</code> \n' +
+    '• <code>update_task_status</code> \n' +
     '• done\n' +
     '• cancel',
     { parse_mode: 'HTML' }
@@ -172,7 +173,7 @@ export const handleEditEventWizard = async (ctx: Context) => {
       await ctx.reply(
         `<b>Edit Event</b>\n` +
         `ID: ${ev.id} — ${ev.title}\n\n` +
-        'Reply with one of: title, date, format, venue, details, status, <code>add_task</code>, <code>remove_task</code>, done, cancel',
+        'Reply with one of: title, date, format, venue, details, status, <code>add_task</code>, <code>remove_task</code>, <code>update_task_status</code>, done, cancel',
         { parse_mode: 'HTML' }
       );
       break;
@@ -206,7 +207,22 @@ export const handleEditEventWizard = async (ctx: Context) => {
         }
         return;
       }
-      await ctx.reply('❌ Invalid option. Choose: title, date, format, venue, details, add\_task, remove\_task, done, cancel');
+      if (choice === 'update_task_status') {
+        state.step = 'update_task_status_task';
+        const tasks = await DrizzleDatabaseService.getEventTasks(state.eventId!);
+        if (tasks.length === 0) {
+          await ctx.reply('There are no tasks for this event yet.');
+          state.step = 'menu';
+        } else {
+          let msg = 'Enter: <task_id> <status>\n';
+          msg += 'Status options: todo | in_progress | complete\n\n';
+          msg += 'Existing tasks:\n';
+          tasks.forEach(t => { msg += `• ${t.title} (ID: ${t.id})\n`; });
+          await ctx.reply(msg);
+        }
+        return;
+      }
+      await ctx.reply('❌ Invalid option. Choose: title, date, format, venue, details, status, add\_task, remove\_task, update\_task\_status, done, cancel');
       break;
     }
     case 'field_value': {
@@ -293,6 +309,52 @@ export const handleEditEventWizard = async (ctx: Context) => {
         await ctx.reply('❌ Failed to remove task.');
       }
       state.step = 'menu';
+      break;
+    }
+    case 'update_task_status_task': {
+      // Accept either "<task_id> <status>" in one go, or just the id first
+      const parts = text.split(/\s+/);
+      const taskId = parseInt(parts[0] || '', 10);
+      if (isNaN(taskId)) {
+        await ctx.reply('❌ Please provide a valid Task ID. Example: `12 in_progress`', { parse_mode: 'Markdown' });
+        return;
+      }
+      let status: 'todo' | 'in_progress' | 'complete' | undefined;
+      if (parts[1]) {
+        const s = parts[1] as any;
+        if (['todo','in_progress','complete'].includes(s)) status = s;
+      }
+      if (!status) {
+        state.pendingTask = { title: String(taskId) };
+        state.step = 'update_task_status_value';
+        await ctx.reply('Enter new status for the task (todo | in_progress | complete):');
+      } else {
+        const ok = await DrizzleDatabaseService.updateTaskStatus(taskId, status);
+        if (ok) {
+          await ctx.reply('✅ Task status updated. Type another option or `done`.');
+          state.step = 'menu';
+        } else {
+          await ctx.reply('❌ Failed to update task status. Please check the Task ID and try again.');
+        }
+      }
+      break;
+    }
+    case 'update_task_status_value': {
+      const taskIdStr = state.pendingTask?.title || '';
+      const taskId = parseInt(taskIdStr, 10);
+      const s = text.trim() as any;
+      if (!['todo','in_progress','complete'].includes(s)) {
+        await ctx.reply('❌ Invalid status. Use one of: todo | in_progress | complete');
+        return;
+      }
+      const ok = await DrizzleDatabaseService.updateTaskStatus(taskId, s);
+      if (ok) {
+        await ctx.reply('✅ Task status updated. Type another option or `done`.');
+        state.step = 'menu';
+      } else {
+        await ctx.reply('❌ Failed to update task status. Please check the Task ID and try again.');
+      }
+      state.pendingTask = undefined;
       break;
     }
   }
