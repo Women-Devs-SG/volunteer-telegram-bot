@@ -374,6 +374,47 @@ We welcome contributions! Here's how to get started:
 - [Database Schema](./src/schema.ts) - Complete schema definitions
 - [API Documentation](./src/db-drizzle.ts) - Database service methods
 
+### 📚 Interactive Onboarding Pages
+
+The `/onboard` (alias: `/onboarding`) command is interactive and file-driven. Pages are simple HTML files that live under:
+
+- `src/onboarding-pages/`
+
+Each file becomes one page in the onboarding flow. The bot automatically discovers and sorts pages by filename, so adding a new page is as easy as adding a new `.html` file.
+
+How it works:
+- The bot loads all `.html` files from `src/onboarding-pages/` and sorts them lexicographically (e.g., `01_*.html`, `02_*.html`, ...).
+- The first `<b>...</b>` block in the file is extracted and used as the page title in the header.
+- The entire file content is rendered with `parse_mode: 'HTML'`.
+- Inline navigation buttons (Prev/Next) let users move between pages.
+
+Add a new page:
+1. Create a new HTML file in `src/onboarding-pages/`.
+2. Use a numeric prefix to control ordering, e.g. `04_guidelines.html`.
+3. Start the file with a bold title so it appears in the header, for example:
+
+   ```html
+   <b>Community Guidelines</b>
+
+   • Be respectful and inclusive
+   • Keep discussions on-topic
+   • No unsolicited DMs
+   ```
+
+Recommended HTML elements:
+- Use basic inline tags only: `<b>`, `<i>`, `<code>`, `<a href="...">`.
+- Use plain text bullets (`•`) and newlines for lists.
+- Avoid advanced/unsupported HTML (images, tables, etc.).
+
+Preview locally:
+- Run the bot (`npm run dev:local`) and send `/onboard` to your dev bot.
+- Use the Prev/Next buttons to navigate and verify formatting.
+
+Initial pages included:
+- `01_resources.html` — Links to website, GitHub, events, contact.
+- `02_admins.html` — Current admins/leads (edit this file to keep it up to date).
+- `03_socials.html` — How to post on socials.
+
 ## 🔒 Security
 
 - Never commit sensitive data (tokens, passwords, database URLs)

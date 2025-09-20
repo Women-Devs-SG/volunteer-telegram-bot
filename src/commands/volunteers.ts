@@ -1,4 +1,6 @@
-import { Context, CommandContext } from 'grammy';
+import { Context, CommandContext, InlineKeyboard } from 'grammy';
+import fs from 'fs/promises';
+import path from 'path';
 import { DrizzleDatabaseService } from '../db-drizzle';
 import { 
   formatVolunteerStatus, 
@@ -15,30 +17,92 @@ const escapeMarkdown = (text: string): string => {
 };
 
 // /onboard command - explains volunteer system and common roles
+// ==== Onboarding (interactive, file-driven) ====
+const ONBOARD_DIRS = [
+  path.resolve(__dirname, '../onboarding-pages'),           // src runtime
+  path.resolve(__dirname, '../../src/onboarding-pages'),    // dist runtime fallback
+];
+
+async function readOnboardingFiles(): Promise<string[]> {
+  for (const dir of ONBOARD_DIRS) {
+    try {
+      const entries = await fs.readdir(dir, { withFileTypes: true });
+      const files = entries
+        .filter(e => e.isFile() && e.name.toLowerCase().endsWith('.html'))
+        .map(e => path.join(dir, e.name))
+        .sort();
+      if (files.length > 0) return files;
+    } catch (_) {
+      // try next dir
+    }
+  }
+  return [];
+}
+
+async function getOnboardingPages(): Promise<{ title: string; content: string }[]> {
+  const files = await readOnboardingFiles();
+  const pages: { title: string; content: string }[] = [];
+  for (const file of files) {
+    const raw = await fs.readFile(file, 'utf8');
+    // Extract first <b>...</b> as title if present
+    const match = raw.match(/<b>(.*?)<\/b>/i);
+    const title: string = match ? (match[1] as string) : path.basename(file);
+    pages.push({ title, content: raw });
+  }
+  return pages;
+}
+
+function buildOnboardKeyboard(index: number, total: number): InlineKeyboard {
+  const kb = new InlineKeyboard();
+  const hasPrev = index > 0;
+  const hasNext = index < total - 1;
+  if (hasPrev) kb.text('⬅️ Prev', `onboard:${index - 1}`);
+  kb.text(`Page ${index + 1}/${total}`, 'onboard:noop');
+  if (hasNext) kb.text('Next ➡️', `onboard:${index + 1}`);
+  return kb;
+}
+
 export const onboardCommand = async (ctx: CommandContext<Context>) => {
-  const message = `🌟 **Welcome to our Volunteer Program!** 🌟
+  const pages = await getOnboardingPages();
+  if (pages.length === 0) {
+    await ctx.reply('❌ Onboarding pages not found. Please add HTML files under src/onboarding-pages/.');
+    return;
+  }
+  const idx = 0;
+  const kb = buildOnboardKeyboard(idx, pages.length);
+  const page = pages[idx]!;
+  const header = `<b>Onboarding</b> — ${page.title}`;
+  const message = `${header}\n\n${page.content}`;
+  await ctx.reply(message, { parse_mode: 'HTML', reply_markup: kb });
+};
 
-**How it works:**
-• New volunteers start in **probation status**
-• Complete **3 commitments within 3 months** to become an active volunteer
-• Active volunteers get access to additional opportunities and recognition
-
-**Common volunteer roles:**
-• **Date Confirmation** - Coordinate with speakers/venues for scheduling
-• **Speaker Confirmation** - Reach out to and confirm speakers
-• **Venue Confirmation** - Secure and confirm event venues
-• **Pre-event Marketing** - Promote upcoming events
-• **Post-event Marketing** - Share event highlights and follow-ups
-• **Moderator** - Guide panel discussions and Q&A sessions
-• **Facilitator** - Lead workshops and interactive sessions
-
-**Available commands:**
-• \`/my_status\` - Check your volunteer status and progress
-• \`/commit <event_id> <role>\` - Sign up for a role in an event
-
-Ready to make a difference? Use \`/my_status\` to see your current standing!`;
-
-  await ctx.reply(message, { parse_mode: 'Markdown' });
+export const handleOnboardCallback = async (ctx: Context) => {
+  const data = ctx.callbackQuery?.data || '';
+  if (!data.startsWith('onboard:')) return; // not our callback
+  if (data === 'onboard:noop') {
+    await ctx.answerCallbackQuery();
+    return;
+  }
+  const [, indexStr] = data.split(':');
+  const index = parseInt(indexStr || '0', 10);
+  const pages = await getOnboardingPages();
+  if (pages.length === 0) {
+    await ctx.answerCallbackQuery({ text: 'No onboarding pages found.' });
+    return;
+  }
+  const safeIndex = Math.max(0, Math.min(index, pages.length - 1));
+  const kb = buildOnboardKeyboard(safeIndex, pages.length);
+  const page = pages[safeIndex]!;
+  const header = `<b>Onboarding</b> — ${page.title}`;
+  const message = `${header}\n\n${page.content}`;
+  try {
+    await ctx.editMessageText(message, { parse_mode: 'HTML', reply_markup: kb });
+    await ctx.answerCallbackQuery();
+  } catch (e) {
+    // If message can't be edited (e.g., too old), send a new one
+    await ctx.answerCallbackQuery();
+    await ctx.reply(message, { parse_mode: 'HTML', reply_markup: kb });
+  }
 };
 
 // /my_status command - shows probation status, commitments completed, full volunteer status

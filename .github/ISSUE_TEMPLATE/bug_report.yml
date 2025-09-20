@@ -1,0 +1,75 @@
+name: Bug report
+description: File a bug report to help us improve
+labels: [bug]
+title: "bug: <short description>"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out a bug report!
+        Please search existing issues first to avoid duplicates.
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+      description: A concise description of the bug
+      placeholder: The bot crashes when I run /create_event
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: What steps lead to the issue?
+      placeholder: |
+        1. Run /create_event
+        2. Enter title "Foo"
+        3. See error
+      render: bash
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      placeholder: The event creation wizard continues to the date step
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      placeholder: The bot replies with an error message "X"
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      options:
+        - Local development (PGlite)
+        - Production (PostgreSQL)
+        - Other / Not sure
+    validations:
+      required: true
+  - type: input
+    id: bot_version
+    attributes:
+      label: Bot version / commit
+      description: Include commit SHA or release tag if possible
+      placeholder: e.g. a1b2c3d or v1.2.0
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs (optional)
+      description: Paste error logs or screenshots
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched for existing issues
+          required: true
+        - label: I can reproduce this issue consistently
+          required: false

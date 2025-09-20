@@ -1,0 +1,55 @@
+name: Improvement / Docs
+description: Suggest an improvement to existing code or docs
+labels: [improvement]
+title: "improve: <short description>"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for proposing an improvement! Please describe the current behavior and the improvement you want to see.
+  - type: input
+    id: summary
+    attributes:
+      label: Summary
+      description: A concise description of the improvement
+      placeholder: Align broadcast volunteers output with list volunteers format
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: Current behavior
+      description: What is happening today?
+      placeholder: The broadcast uses Markdown and different grouping; list volunteers uses HTML with specific groups.
+    validations:
+      required: true
+  - type: textarea
+    id: desired
+    attributes:
+      label: Desired behavior
+      description: What should it look like after the improvement?
+      placeholder: Use HTML parse mode, match grouping and headings, add tracking period.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Proposed changes
+      description: High-level list of changes you'd like to make
+      placeholder: |
+        1. Switch to HTML parsing
+        2. Use formatHumanDate for tracking period
+        3. Escape HTML for names and handles
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - label: Affects user-visible messages
+        - label: Requires tests updates
+        - label: Requires documentation updates
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional context
+      description: Links, references, screenshots

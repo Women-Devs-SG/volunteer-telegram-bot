@@ -315,10 +315,38 @@ export class DrizzleDatabaseService {
         .set({ status, updated_at: new Date() })
         .where(eq(events.id, id));
 
+      // If event is marked completed, cascade: complete tasks and increment commitments
+      if (status === 'completed') {
+        // Fetch tasks for this event
+        const eventTasks = await this.getEventTasks(id);
+        for (const task of eventTasks) {
+          if (task.status !== 'complete') {
+            await this.updateTaskStatus(task.id, 'complete');
+          }
+        }
+      }
+
       return true;
     } catch (error) {
       console.error('Error updating event status:', error);
       return false;
+    }
+  }
+
+  // Helper: increment commitments and promote if now >= 3 and status probation/inactive
+  static async incrementCommitmentsAndMaybePromote(volunteerId: number): Promise<void> {
+    try {
+      const v = await this.getVolunteerById(volunteerId);
+      if (!v) return;
+      // Increment first
+      await this.incrementVolunteerCommitments(volunteerId);
+      const nextCommitments = (v.commitments ?? 0) + 1;
+      // Promote if threshold met and status is probation or inactive
+      if (nextCommitments >= 3 && (v.status === 'probation' || v.status === 'inactive')) {
+        await this.updateVolunteerStatus(volunteerId, 'active');
+      }
+    } catch (e) {
+      console.error('Error incrementing commitments and maybe promoting:', e);
     }
   }
 
@@ -454,13 +482,23 @@ export class DrizzleDatabaseService {
 
   static async updateTaskStatus(taskId: number, status: 'todo' | 'in_progress' | 'complete'): Promise<boolean> {
     try {
+      // Fetch current status to detect transitions to complete
+      const existing = await this.getTask(taskId);
       await db.update(tasks)
         .set({ 
           status,
           updated_at: new Date()
         })
         .where(eq(tasks.id, taskId));
-      
+
+      // On transition to complete, update commitments and maybe promote
+      if (status === 'complete' && existing && existing.status !== 'complete') {
+        const assignments = await this.getTaskAssignments(taskId);
+        for (const assignment of assignments) {
+          await this.incrementCommitmentsAndMaybePromote(assignment.volunteer_id);
+        }
+      }
+
       return true;
     } catch (error) {
       console.error('Error updating task status:', error);
