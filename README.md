@@ -378,7 +378,7 @@ We welcome contributions! Here's how to get started:
 
 The `/onboard` (alias: `/onboarding`) command is interactive and file-driven. Pages are simple HTML files that live under:
 
-- `src/onboarding-pages/`
+- [`src/onboarding-pages/`](./src/onboarding-pages/)
 
 Each file becomes one page in the onboarding flow. The bot automatically discovers and sorts pages by filename, so adding a new page is as easy as adding a new `.html` file.
 
@@ -389,7 +389,7 @@ How it works:
 - Inline navigation buttons (Prev/Next) let users move between pages.
 
 Add a new page:
-1. Create a new HTML file in `src/onboarding-pages/`.
+1. Create a new HTML file in [`src/onboarding-pages/`](./src/onboarding-pages/).
 2. Use a numeric prefix to control ordering, e.g. `04_guidelines.html`.
 3. Start the file with a bold title so it appears in the header, for example:
 
@@ -411,11 +411,21 @@ Preview locally:
 - Use the Prev/Next buttons to navigate and verify formatting.
 
 Initial pages included:
-- `01_resources.html` — Links to website, GitHub, events, contact.
-- `02_admins.html` — Current admins/leads (edit this file to keep it up to date).
-- `03_socials.html` — How to post on socials.
+- [`01_resources.html`](./src/onboarding-pages/01_resources.html) — Links to website, GitHub, events, contact.
+- [`02_admins.html`](./src/onboarding-pages/02_admins.html) — Current admins/leads (edit this file to keep it up to date).
+- [`03_socials.html`](./src/onboarding-pages/03_socials.html) — How to post on socials.
 
 ## 🔒 Security
+
+## ☁️ Vercel Deployment Note (Webhook Parity)
+
+If you deploy on Vercel using the webhook handler in [`api/webhook.ts`](./api/webhook.ts), please ensure it stays aligned with [`src/bot.ts`](./src/bot.ts):
+
+- **Commands**: Register any new commands in both files (or keep parity by copying the registrations).
+- **Handlers**: Wire new interactive handlers (e.g., wizard flows, confirmation handlers, callback handlers) in both places.
+- **Help text and setMyCommands**: Update the help message and `setMyCommands` in both files for consistency.
+
+This parity is required because Vercel uses `api/webhook.ts` to process Telegram updates in production, while `src/bot.ts` is typically used for local development. Missing command/handler registrations in `api/webhook.ts` will cause features to work locally but fail in production.
 
 - Never commit sensitive data (tokens, passwords, database URLs)
 - Use environment variables for all configuration

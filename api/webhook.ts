@@ -7,6 +7,7 @@ dotenv.config();
 // Import command handlers (parity with src/bot.ts)
 import { 
   onboardCommand,
+  handleOnboardCallback,
   myStatusCommand,
   commitCommand,
   assignTaskCommand,
@@ -27,6 +28,7 @@ import {
   setStatusCommand,
   resetQuarterCommand,
   handleResetQuarterWizard,
+  removeAdminCommand,
 } from '../src/commands/admins';
 
 import {
@@ -47,6 +49,8 @@ import {
   broadcastEventsCommand,
   broadcastTasksCommand,
   broadcastCustomCommand,
+  broadcastEventDetailsCommand,
+  handleBroadcastEventDetailsConfirmation,
 } from '../src/commands/broadcast';
 
 import { DrizzleDatabaseService } from '../src/db-drizzle';
@@ -76,7 +80,9 @@ Welcome! I help manage volunteer onboarding, event planning, and admin tasks.
 • \`/my_status\` - Check your volunteer status
 • \`/commit <task_id>\` - Sign up for event tasks
 • \`/list_events\` - View upcoming events
-• \`/event_details <event_id>\` - View detailed event information`;
+• \`/event_details <event_id>\` - View detailed event information
+• \`/create_event\` - Create a new event (interactive)
+• \`/edit_event <event_id>\` - Edit your own event (admins can edit any)`;
 
   if (telegramHandle) {
     const isAdmin = await DrizzleDatabaseService.isAdmin(telegramHandle);
@@ -88,6 +94,7 @@ Welcome! I help manage volunteer onboarding, event planning, and admin tasks.
 • \`/list_volunteers\` - View all volunteers
 • \`/add_volunteer\` - Add new volunteer (interactive)
 • \`/remove_volunteer @handle\` - Remove volunteer
+• \`/remove_admin @handle\` - Remove admin access from a handle
 • \`/create_event\` - Create new event (interactive with task selection)
 • \`/edit_event <event_id>\` - Edit an event details/tasks (interactive)
 • \`/remove_event <event_id>\` - Remove an event (admin)
@@ -101,6 +108,7 @@ Welcome! I help manage volunteer onboarding, event planning, and admin tasks.
 • \`/broadcast\` - Show broadcast menu for testing
 • \`/broadcast_volunteers\` - Broadcast volunteer status list
 • \`/broadcast_events\` - Broadcast upcoming events
+• \`/broadcast_event_details <event_id>\` - Broadcast a specific event's details
 • \`/broadcast_tasks\` - Broadcast available tasks
 • \`/broadcast_custom <message>\` - Send custom broadcast message
 • \`/reset_quarter\` - Reset all commit counts to 0 (interactive, admin)`;
@@ -140,6 +148,7 @@ bot.command('help', async (ctx) => {
 
 // Volunteer commands
 bot.command('onboard', onboardCommand);
+bot.command('onboarding', onboardCommand);
 bot.command('my_status', myStatusCommand);
 bot.command('commit', commitCommand);
 
@@ -155,11 +164,12 @@ bot.command('update_task_status', requireAdmin, updateTaskStatusCommand);
 bot.command('remove_assignment', requireAdmin, removeAssignmentCommand);
 bot.command('set_commit_count', requireAdmin, setCommitCountCommand);
 bot.command('set_status', requireAdmin, setStatusCommand);
+bot.command('remove_admin', requireAdmin, removeAdminCommand);
 bot.command('reset_quarter', requireAdmin, resetQuarterCommand);
 bot.command('monthly_report', requireAdmin, monthlyReportCommand);
 bot.command('volunteer_status_report', requireAdmin, volunteerStatusReportCommand);
-bot.command('create_event', requireAdmin, createEventCommand);
-bot.command('edit_event', requireAdmin, editEventCommand);
+bot.command('create_event', createEventCommand);
+bot.command('edit_event', editEventCommand);
 bot.command('remove_event', requireAdmin, removeEventCommand);
 
 // Public event commands (same as src/bot.ts)
@@ -170,6 +180,7 @@ bot.command('event_details', eventDetailsCommand);
 bot.command('broadcast', requireAdmin, broadcastCommand);
 bot.command('broadcast_volunteers', requireAdmin, broadcastVolunteersCommand);
 bot.command('broadcast_events', requireAdmin, broadcastEventsCommand);
+bot.command('broadcast_event_details', broadcastEventDetailsCommand);
 bot.command('broadcast_tasks', requireAdmin, broadcastTasksCommand);
 bot.command('broadcast_custom', requireAdmin, broadcastCustomCommand);
 
@@ -188,6 +199,13 @@ bot.on('message:text', async (ctx) => {
   await handleRemoveEventConfirmation(ctx);
   // Handle reset quarter wizard
   await handleResetQuarterWizard(ctx);
+  // Handle broadcast event details confirmation
+  await handleBroadcastEventDetailsConfirmation(ctx);
+});
+
+// Handle onboarding navigation callbacks
+bot.on('callback_query:data', async (ctx) => {
+  await handleOnboardCallback(ctx);
 });
 
 // Initialize bot once
@@ -200,14 +218,15 @@ const setupBotCommands = async () => {
       { command: 'start', description: 'Show welcome message and help' },
       { command: 'help', description: 'Show all available commands' },
       { command: 'onboard', description: 'Learn about the volunteer program' },
+      { command: 'onboarding', description: 'Learn about the volunteer program (interactive)' },
       { command: 'my_status', description: 'Check your volunteer status' },
       { command: 'commit', description: 'Sign up for event tasks' },
       { command: 'admin_login', description: 'Authenticate as admin' },
       { command: 'list_volunteers', description: 'View all volunteers (admin)' },
       { command: 'add_volunteer', description: 'Add new volunteer (interactive, admin)' },
       { command: 'remove_volunteer', description: 'Remove volunteer (admin)' },
-      { command: 'create_event', description: 'Create new event with task selection (admin)' },
-      { command: 'edit_event', description: 'Edit an event details/tasks (admin)' },
+      { command: 'create_event', description: 'Create new event with task selection' },
+      { command: 'edit_event', description: 'Edit an event details/tasks (own events for non-admins)' },
       { command: 'assign_task', description: 'Assign tasks to volunteers (admin)' },
       { command: 'update_task_status', description: 'Update task status (admin)' },
       { command: 'remove_assignment', description: 'Remove a volunteer from a task (admin)' },
@@ -221,6 +240,7 @@ const setupBotCommands = async () => {
       { command: 'broadcast', description: 'Show broadcast menu (admin)' },
       { command: 'broadcast_volunteers', description: 'Broadcast volunteer status (admin)' },
       { command: 'broadcast_events', description: 'Broadcast upcoming events (admin)' },
+      { command: 'broadcast_event_details', description: 'Broadcast a specific event' },
       { command: 'broadcast_tasks', description: 'Broadcast available tasks (admin)' },
       { command: 'broadcast_custom', description: 'Send custom broadcast message (admin)' },
       { command: 'reset_quarter', description: 'Reset all commit counts to 0 (interactive, admin)' },

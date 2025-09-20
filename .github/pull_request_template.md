@@ -30,6 +30,8 @@ Fixes #(issue number)
 - [ ] I have run `npm run lint` and there are no linting errors
 - [ ] I have tested the bot commands manually in development
 - [ ] I have verified the database operations work correctly
+- [ ] I have aligned `api/webhook.ts` with `src/bot.ts` for new commands/handlers (Vercel parity)
+- [ ] I have run `npm run check:parity` and resolved any mismatches
 
 ### Test Commands Run
 ```bash
@@ -63,6 +65,7 @@ npm run setup:local
 - [ ] I have added tests that prove my fix is effective or that my feature works
 - [ ] New and existing unit tests pass locally with my changes
 - [ ] Any dependent changes have been merged and published
+ - [ ] Help text and command auto-complete updated in both `src/bot.ts` and `api/webhook.ts`
 
 ## Screenshots/Demo
 <!-- If applicable, add screenshots or demo GIFs to help explain your changes -->
