@@ -12,7 +12,6 @@ import {
   commitCommand,
   assignTaskCommand,
   updateTaskStatusCommand,
-  monthlyReportCommand,
   volunteerStatusReportCommand,
 } from '../src/commands/volunteers';
 
@@ -103,7 +102,6 @@ Welcome! I help manage volunteer onboarding, event planning, and admin tasks.
 • \`/remove_assignment <task_id> @volunteer\` - Remove a volunteer from a task
 • \`/set_commit_count @volunteer <count>\` - Overwrite a volunteer's commit count
 • \`/set_status @volunteer <probation/active/inactive>\` - Update a volunteer's status
-• \`/monthly_report\` - Generate monthly volunteer status report
 • \`/volunteer_status_report\` - View current volunteer status
 • \`/broadcast\` - Show broadcast menu for testing
 • \`/broadcast_volunteers\` - Broadcast volunteer status list
@@ -166,7 +164,6 @@ bot.command('set_commit_count', requireAdmin, setCommitCountCommand);
 bot.command('set_status', requireAdmin, setStatusCommand);
 bot.command('remove_admin', requireAdmin, removeAdminCommand);
 bot.command('reset_quarter', requireAdmin, resetQuarterCommand);
-bot.command('monthly_report', requireAdmin, monthlyReportCommand);
 bot.command('volunteer_status_report', requireAdmin, volunteerStatusReportCommand);
 bot.command('create_event', createEventCommand);
 bot.command('edit_event', editEventCommand);
@@ -232,7 +229,6 @@ const setupBotCommands = async () => {
       { command: 'remove_assignment', description: 'Remove a volunteer from a task (admin)' },
       { command: 'set_commit_count', description: 'Overwrite a volunteer\'s commit count (admin)' },
       { command: 'set_status', description: 'Update a volunteer\'s status (admin)' },
-      { command: 'monthly_report', description: 'Generate monthly volunteer status report (admin)' },
       { command: 'volunteer_status_report', description: 'View current volunteer status (admin)' },
       { command: 'list_events', description: 'View upcoming events with tasks' },
       { command: 'event_details', description: 'View detailed event information' },
