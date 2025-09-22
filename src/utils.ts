@@ -300,76 +300,7 @@ export const promoteIfEligible = async (bot: Bot, volunteerId: number): Promise<
 };
 
 // Mark inactive volunteers based on commitment tracking
-export const processMonthlyVolunteerStatus = async (bot: Bot): Promise<string> => {
-  try {
-    // Update volunteer statuses based on commitments
-    const { updated, inactive } = await DrizzleDatabaseService.updateVolunteerStatusBasedOnCommitments();
-    
-    // Reset commitments for the new month
-    await DrizzleDatabaseService.resetMonthlyCommitments();
-    
-    // Generate status report
-    const report = await DrizzleDatabaseService.getVolunteerStatusReport();
-    
-    let message = `📊 <b>Monthly Volunteer Status Report</b>\n\n`;
-    message += `<b>Status Updates:</b>\n`;
-    message += `• ${updated} volunteers had status changes\n`;
-    message += `• ${inactive} volunteers marked as inactive\n\n`;
-    
-    message += `<b>Current Volunteer Breakdown:</b>\n`;
-    message += `👥 <b>Total Volunteers:</b> ${report.total}\n\n`;
-    
-    if (report.lead.length > 0) {
-      message += `🌟 <b>Lead Volunteers (${report.lead.length}):</b>\n`;
-      report.lead.forEach(v => {
-        const safeName = escapeHtml(v.name);
-        const safeHandle = escapeHtml(v.telegram_handle);
-        message += `• ${safeName} (@${safeHandle})\n`;
-      });
-      message += `\n`;
-    }
-    
-    if (report.active.length > 0) {
-      message += `✅ <b>Active Volunteers (${report.active.length}):</b>\n`;
-      report.active.forEach(v => {
-        const safeName = escapeHtml(v.name);
-        const safeHandle = escapeHtml(v.telegram_handle);
-        message += `• ${safeName} (@${safeHandle}) - ${v.commitments} commitments\n`;
-      });
-      message += `\n`;
-    }
-    
-    if (report.probation.length > 0) {
-      message += `🔄 <b>Probation Volunteers (${report.probation.length}):</b>\n`;
-      report.probation.forEach(v => {
-        const safeName = escapeHtml(v.name);
-        const safeHandle = escapeHtml(v.telegram_handle);
-        message += `• ${safeName} (@${safeHandle}) - ${v.commitments} commitments\n`;
-      });
-      message += `\n`;
-    }
-    
-    if (report.inactive.length > 0) {
-      message += `⚠️ <b>Inactive Volunteers (${report.inactive.length}):</b>\n`;
-      report.inactive.forEach(v => {
-        const safeName = escapeHtml(v.name);
-        const safeHandle = escapeHtml(v.telegram_handle);
-        message += `• ${safeName} (@${safeHandle}) - ${v.commitments} commitments\n`;
-      });
-      message += `\n`;
-    }
-    
-    message += `**Next Steps:**\n`;
-    message += `• Probation volunteers need 3 commitments to become active\n`;
-    message += `• Inactive volunteers should be contacted for reactivation\n`;
-    message += `• Commitment counters have been reset for the new month\n`;
-    
-    return message;
-  } catch (error) {
-    console.error('Error processing monthly volunteer status:', error);
-    return 'Error generating monthly volunteer status report.';
-  }
-};
+// Removed processMonthlyVolunteerStatus and related monthly automation by design
 
 
 // Filter events to show only today and future events

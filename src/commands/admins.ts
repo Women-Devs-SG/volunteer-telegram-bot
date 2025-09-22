@@ -63,6 +63,8 @@ export const handleResetQuarterWizard = async (ctx: Context) => {
         await ctx.reply('❌ Invalid date. Please enter a valid date (e.g., `2025-03-31`).', { parse_mode: 'Markdown' });
         return;
       }
+      // Capture pre-reset volunteer snapshot for broadcast
+      const preResetVolunteers = await DrizzleDatabaseService.getAllVolunteers();
       const result = await DrizzleDatabaseService.resetQuarterCommitments(parsed);
       resetQuarterState.delete(userId);
       if (result.success) {
@@ -77,6 +79,34 @@ export const handleResetQuarterWizard = async (ctx: Context) => {
           msg += `\n👉 Please remove these volunteers from the group and inform them about the change.`;
         }
         await ctx.reply(msg, { parse_mode: 'Markdown' });
+
+        // Broadcast to volunteer group with pre-reset summary and admin handle, if available
+        try {
+          const groupId = process.env.VOLUNTEER_GROUP_ID;
+          if (groupId) {
+            const adminHandle = ctx.from?.username ? `@${ctx.from.username}` : 'an admin';
+            // Build pre-reset summary list
+            const sorted = [...preResetVolunteers].sort((a, b) => (b.commitments || 0) - (a.commitments || 0));
+            let broadcast = `🔄 Commit counts have been reset for the new tracking period (starts ${nextStart}).\n` +
+                            `👤 Reset initiated by ${adminHandle}.\n\n` +
+                            `📋 Commitments before reset:`;
+            if (sorted.length === 0) {
+              broadcast += `\n• No volunteers registered yet.`;
+            } else {
+              for (const v of sorted) {
+                // Escape only the characters relevant for Markdown v1 used in parse_mode below
+                const safeName = v.name.replace(/([_*\[\]`])/g, '\\$1');
+                const safeHandle = v.telegram_handle.replace(/([_*\[\]`])/g, '\\$1');
+                broadcast += `\n• ${safeName} (@${safeHandle}) — ${v.commitments} commitments`;
+              }
+            }
+            await ctx.api.sendMessage(groupId, broadcast, { parse_mode: 'Markdown' });
+          } else {
+            console.log('VOLUNTEER_GROUP_ID not set; skipping reset broadcast');
+          }
+        } catch (e) {
+          console.error('Error broadcasting reset announcement:', e);
+        }
       } else {
         await ctx.reply('❌ Failed to reset commit counts. Please try again.');
       }

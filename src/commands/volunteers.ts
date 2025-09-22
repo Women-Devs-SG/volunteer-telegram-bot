@@ -6,7 +6,6 @@ import {
   formatVolunteerStatus, 
   canVolunteerCommit,
   formatTaskStatus,
-  processMonthlyVolunteerStatus,
   promoteIfEligible
 } from '../utils';
 
@@ -349,33 +348,6 @@ export const updateTaskStatusCommand = async (ctx: CommandContext<Context>) => {
     );
   } else {
     await ctx.reply('❌ Failed to update task status. Please try again.');
-  }
-};
-
-// /monthly_report command (admin only) - generate monthly volunteer status report
-export const monthlyReportCommand = async (ctx: CommandContext<Context>) => {
-  const telegramHandle = ctx.from?.username;
-  
-  if (!telegramHandle) {
-    await ctx.reply('❌ Please set a Telegram username to use this bot.');
-    return;
-  }
-
-  // Check if user is admin
-  const isAdmin = await DrizzleDatabaseService.isAdmin(telegramHandle);
-  if (!isAdmin) {
-    await ctx.reply('❌ This command is only available to administrators.');
-    return;
-  }
-
-  await ctx.reply('📊 Generating monthly volunteer status report...');
-  
-  try {
-    const reportMessage = await processMonthlyVolunteerStatus(ctx.api as any);
-    await ctx.reply(reportMessage, { parse_mode: 'Markdown' });
-  } catch (error) {
-    console.error('Error generating monthly report:', error);
-    await ctx.reply('❌ Failed to generate monthly report. Please try again later.');
   }
 };
 
