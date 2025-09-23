@@ -63,9 +63,21 @@ if (!BOT_TOKEN) {
 // Create bot instance
 const bot = new Bot(BOT_TOKEN);
 
-// Error handling
-bot.catch((err) => {
+// Error handling with user-friendly notification
+bot.catch(async (err) => {
   console.error('Bot error:', err);
+  const ctx = (err as any).ctx as any;
+  if (ctx && typeof ctx.reply === 'function') {
+    try {
+      await ctx.reply(
+        '⚠️ An unexpected error occurred while processing your request. Please try again.\n\n' +
+          'If this keeps happening, please notify an admin or open an issue on our GitHub repo:\n' +
+          'https://github.com/Women-Devs-SG/volunteer-telegram-bot/issues',
+      );
+    } catch (sendErr) {
+      console.error('Failed to send error notification to user:', sendErr);
+    }
+  }
 });
 
 // Help message function (aligned with src/bot.ts)
