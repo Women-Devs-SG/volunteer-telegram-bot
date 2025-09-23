@@ -124,7 +124,7 @@ export const myStatusCommand = async (ctx: CommandContext<Context>) => {
   }
 
   const statusMessage = formatVolunteerStatus(volunteer);
-  await ctx.reply(statusMessage, { parse_mode: 'Markdown' });
+  await ctx.reply(statusMessage, { parse_mode: 'HTML' });
 };
 
 // /commit command - volunteer commits to a task
@@ -277,9 +277,9 @@ export const updateTaskStatusCommand = async (ctx: CommandContext<Context>) => {
 
   const statusHelp =
     '❓ Task status options:\n' +
-    '• todo — Task has not been started yet\n' +
-    '• in_progress — Work is currently underway\n' +
-    '• complete — Task has been finished (increments volunteer commitments)\n\n' +
+    '• `todo` — Task has not been started yet\n' +
+    '• `in_progress` — Work is currently underway\n' +
+    '• `complete` — Task has been finished (increments volunteer commitments)\n\n' +
     '✅ Usage: `/update_task_status <task_id> <status>`\n' +
     'Example: `/update_task_status 12 in_progress`\n' +
     'Example: `/update_task_status 12 complete`';

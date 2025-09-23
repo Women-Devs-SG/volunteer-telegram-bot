@@ -68,9 +68,21 @@ const bot = new Bot(BOT_TOKEN);
 
 // Scheduler removed by design; no automatic scheduling
 
-// Error handling
-bot.catch((err) => {
+// Error handling with user-friendly notification
+bot.catch(async (err) => {
   console.error('Bot error:', err);
+  const ctx = (err as any).ctx as Context | undefined;
+  if (ctx) {
+    try {
+      await ctx.reply(
+        '⚠️ An unexpected error occurred while processing your request. Please try again.\n\n' +
+          'If this keeps happening, please notify an admin or open an issue on our GitHub repo:\n' +
+          'https://github.com/Women-Devs-SG/volunteer-telegram-bot/issues',
+      );
+    } catch (sendErr) {
+      console.error('Failed to send error notification to user:', sendErr);
+    }
+  }
 });
 
 // Help message function
