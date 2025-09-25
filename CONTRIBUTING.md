@@ -2,6 +2,10 @@
 
 Thank you for your interest in contributing to the Women Developers SG Volunteer Management Bot! This document provides guidelines and instructions for contributors.
 
+⚠️ **Disclaimer:** While we welcome contributions from everyone around the world, preference will be given to:  
+- Women developers based in Singapore  
+- Members of the **[WDS Telegram community group](https://t.me/+hh3Fts4oDG41NzQ1)**  
+
 ## Table of Contents
 
 - [Getting Started](#getting-started)
