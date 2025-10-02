@@ -54,15 +54,16 @@ export const TASKS: TaskTemplate[] = [
   { title: 'Registration Management', description: 'Manage event registrations and attendee list', category: 'General' },
   { title: 'Follow-up Communications', description: 'Send follow-up messages to attendees', category: 'General' },
   { title: 'Documentation', description: 'Document event outcomes and learnings', category: 'General' },
+  { title: 'Introduce WDS', description: 'Briefly introduce Women Devs SG and our mission at event start', category: 'General' },
 ];
 
 // Map of required tasks by event format. Use task TITLES from TASKS above.
 const REQUIRED_BY_FORMAT: Record<Event['format'] | 'default', string[]> = {
-  default: ['Content Creation', 'Pre-event Marketing', 'Post-event Marketing'],
-  panel: ['Content Creation', 'Pre-event Marketing', 'Post-event Marketing', 'Moderation', 'Date Confirmation', 'Speaker Confirmation'],
-  workshop: ['Content Creation', 'Pre-event Marketing', 'Post-event Marketing', 'Facilitation', 'Date Confirmation'],
-  conference: ['Content Creation', 'Pre-event Marketing', 'Post-event Marketing', 'Speaker Coordination', 'Date Confirmation'],
-  talk: ['Content Creation', 'Pre-event Marketing', 'Post-event Marketing', 'Speaker Coordination', 'Date Confirmation'],
+  default: ['Content Creation', 'Pre-event Marketing', 'Post-event Marketing', 'Introduce WDS'],
+  panel: ['Content Creation', 'Pre-event Marketing', 'Post-event Marketing', 'Moderation', 'Date Confirmation', 'Speaker Confirmation', 'Introduce WDS'],
+  workshop: ['Content Creation', 'Pre-event Marketing', 'Post-event Marketing', 'Facilitation', 'Date Confirmation', 'Introduce WDS'],
+  conference: ['Content Creation', 'Pre-event Marketing', 'Post-event Marketing', 'Speaker Coordination', 'Date Confirmation', 'Introduce WDS'],
+  talk: ['Content Creation', 'Pre-event Marketing', 'Post-event Marketing', 'Speaker Coordination', 'Date Confirmation', 'Introduce WDS'],
   external_speaker: ['Content Creation', 'Pre-event Marketing', 'Post-event Marketing', 'Speaker Coordination', 'Date Confirmation'],
   others: ['Content Creation', 'Pre-event Marketing', 'Post-event Marketing'],
   meeting: ['Date Confirmation', 'Venue Coordination', 'Post-event Marketing'],
