@@ -30,8 +30,8 @@ Thank you for your interest in contributing to the Women Developers SG Volunteer
 ### Development Setup
 
 1. **Fork and Clone the Repository**
-  - First, fork this repository to your own GitHub account
-  - Then, clone your fork to your local machine:
+   - First, fork this repository to your own GitHub account
+   - Then, clone your fork to your local machine:
    ```bash
    git clone https://github.com/your-username/volunteer-telegram-bot.git
    cd volunteer-telegram-bot
@@ -238,7 +238,7 @@ test: add tests for event creation
 
 ### 3. Pull Request Process
 1. Push your feature branch to your fork
-2. Create a pull request targetting the main branch using the provided template
+2. Create a pull request targeting the main branch using the provided template
 3. Fill out all sections of the PR template
 4. Request review from maintainers
 5. Address any feedback promptly
