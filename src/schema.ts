@@ -1,4 +1,4 @@
-import { pgTable, serial, text, integer, timestamp, index, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, integer, timestamp, index, pgEnum, jsonb } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // Define enums
@@ -124,6 +124,27 @@ export const taskAssignmentsRelations = relations(taskAssignments, ({ one }) => 
     fields: [taskAssignments.assigned_by],
     references: [volunteers.id],
   }),
+}));
+
+export const adminAuditLogs = pgTable('admin_audit_logs', {
+  id: serial('id').primaryKey(),
+  timestamp: timestamp('timestamp', { withTimezone: true }).defaultNow().notNull(),
+  admin_handle: text('admin_handle'),
+  admin_telegram_id: text('admin_telegram_id'),
+  chat_id: text('chat_id'),
+  message_id: text('message_id'),
+  command: text('command').notNull(),
+  args_raw: text('args_raw'),
+  result: text('result').notNull(),
+  error_message: text('error_message'),
+  metadata: jsonb('metadata'),
+  created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),
+  updated_at: timestamp('updated_at', { withTimezone: true }).defaultNow(),
+}, (table) => ({
+  adminHandleIdx: index('idx_admin_audit_logs_admin_handle').on(table.admin_handle),
+  commandIdx: index('idx_admin_audit_logs_command').on(table.command),
+  resultIdx: index('idx_admin_audit_logs_result').on(table.result),
+  timestampIdx: index('idx_admin_audit_logs_timestamp').on(table.timestamp),
 }));
 
 // Export types
