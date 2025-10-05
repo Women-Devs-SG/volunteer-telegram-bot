@@ -12,6 +12,7 @@ vi.mock('../src/db-drizzle', () => ({
     createEvent: vi.fn(),
     updateVolunteerStatus: vi.fn(),
     getEventTasks: vi.fn(),
+    getTaskAssignments: vi.fn(),
   }
 }));
 
@@ -211,6 +212,8 @@ describe('Bot Commands', () => {
           updated_at: new Date().toISOString()
         }
       ]);
+
+      vi.mocked(DrizzleDatabaseService.getTaskAssignments).mockResolvedValue([]);
 
       const { handleListEventsCommand } = await import('../src/commands/events');
       
