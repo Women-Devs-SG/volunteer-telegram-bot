@@ -230,7 +230,7 @@ export const broadcastEventsCommand = async (ctx: CommandContext<Context>) => {
   }
   
   try {
-    const events = await DrizzleDatabaseService.getAllEvents();
+    const events = await DrizzleDatabaseService.getAllIncompleteEvents();
     
     if (events.length === 0) {
       await ctx.reply('❌ No events to broadcast.');
@@ -276,8 +276,8 @@ export const broadcastTasksCommand = async (ctx: CommandContext<Context>) => {
   }
   
   try {
-    // Get all events
-    const events = await DrizzleDatabaseService.getAllEvents();
+    // Get all incomplete events
+    const events = await DrizzleDatabaseService.getAllIncompleteEvents();
 
     if (events.length === 0) {
       await ctx.reply('❌ No events with tasks to broadcast.');

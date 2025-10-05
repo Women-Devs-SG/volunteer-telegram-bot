@@ -1,7 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { DrizzleDatabaseService } from '../src/db-drizzle';
-import { db } from '../src/drizzle';
-import { volunteers, events, tasks, admins } from '../src/schema';
 
 describe('Database Service', () => {
   describe('Volunteer Operations', () => {
@@ -112,6 +110,57 @@ describe('Database Service', () => {
 
       const updatedEvent = await DrizzleDatabaseService.getEvent(event!.id);
       expect(updatedEvent?.status).toBe('published');
+    });
+    
+    it('should return only incomplete events from getAllIncompleteEvents', async () => {
+      // Create events with different statuses
+      const event1 = await DrizzleDatabaseService.createEvent(
+        'Incomplete Event 1',
+        '2024-10-15T17:00:00Z',
+        'workshop',
+        'Planning phase',
+        'Tech Hub'
+      );
+      
+      const event2 = await DrizzleDatabaseService.createEvent(
+        'Completed Event',
+        '2024-09-20T17:00:00Z',
+        'talk',
+        'Already happened',
+        'Conference Center'
+      );
+      
+      const event3 = await DrizzleDatabaseService.createEvent(
+        'Incomplete Event 2',
+        '2024-11-30T17:00:00Z',
+        'panel',
+        'Published event',
+        'Online'
+      );
+      
+      // Set event2 as completed
+      await DrizzleDatabaseService.updateEventStatus(event2!.id, 'completed');
+      
+      // Set event3 as published
+      await DrizzleDatabaseService.updateEventStatus(event3!.id, 'published');
+      
+      // Get all incomplete events
+      const incompleteEvents = await DrizzleDatabaseService.getAllIncompleteEvents();
+      
+      // Check that only non-completed events are returned
+      expect(incompleteEvents).toHaveLength(2);
+      
+      // Verify specific events by checking their titles
+      const titles = incompleteEvents.map(e => e.title);
+      expect(titles).toContain('Incomplete Event 1');
+      expect(titles).toContain('Incomplete Event 2');
+      expect(titles).not.toContain('Completed Event');
+      
+      // Verify their statuses
+      const statuses = incompleteEvents.map(e => e.status);
+      expect(statuses).toContain('planning');
+      expect(statuses).toContain('published');
+      expect(statuses).not.toContain('completed');
     });
   });
 
