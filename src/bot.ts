@@ -22,7 +22,8 @@ import {
   commitCommand,
   assignTaskCommand,
   updateTaskStatusCommand,
-  volunteerStatusReportCommand
+  volunteerStatusReportCommand,
+  uncommitCommand
 } from './commands/volunteers';
 
 import { DrizzleDatabaseService } from './db-drizzle';
@@ -106,6 +107,7 @@ Welcome! I help manage volunteer onboarding, event planning, and admin tasks.
 • \`/onboard\` - Learn about the volunteer program
 • \`/my_status\` - Check your volunteer status
 • \`/commit <task_id>\` - Sign up for event tasks
+• \`/uncommit <task_id>\` - Remove yourself from a task
 • \`/list_events\` - View upcoming events
 • \`/event_details <event_id>\` - View detailed event information
 • \`/create_event\` - Create a new event (interactive)
@@ -179,6 +181,7 @@ bot.command('onboard', onboardCommand);
 bot.command('onboarding', onboardCommand);
 bot.command('my_status', myStatusCommand);
 bot.command('commit', commitCommand);
+bot.command('uncommit', uncommitCommand);
 
 // Admin authentication
 bot.command('admin_login', adminLoginCommand);
@@ -268,6 +271,7 @@ const setupBotCommands = async () => {
       { command: 'onboard', description: 'Learn about the volunteer program' },
       { command: 'my_status', description: 'Check your volunteer status' },
       { command: 'commit', description: 'Sign up for event tasks' },
+      { command: 'uncommit', description: 'Remove yourself from event tasks' },
       { command: 'admin_login', description: 'Authenticate as admin' },
       { command: 'list_volunteers', description: 'View all volunteers (admin)' },
       { command: 'add_volunteer', description: 'Add new volunteer (interactive, admin)' },

@@ -154,7 +154,8 @@ export const formatEventDetails = async (event: Event, tasks?: Task[]): Promise<
     eventText += `\n💡 <b>How to volunteer:</b>\n`;
     eventText += `• Use <code>/commit &lt;task_id&gt;</code> to sign up for an available task\n`;
     eventText += `• Example: <code>/commit 5</code> to volunteer for task ID 5\n`;
-    eventText += `• Only unassigned tasks are available for signup`;
+    eventText += `• Only unassigned tasks are available for signup\n`;
+    eventText += `• Use <code>/uncommit &lt;task_id&gt;</code> to remove yourself from a task`;
   } else {
     eventText += `\n📋 No tasks created for this event yet.`;
   }

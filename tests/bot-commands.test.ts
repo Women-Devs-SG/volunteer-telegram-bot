@@ -13,6 +13,9 @@ vi.mock('../src/db-drizzle', () => ({
     updateVolunteerStatus: vi.fn(),
     getEventTasks: vi.fn(),
     getTaskAssignments: vi.fn(),
+    getTask: vi.fn(),
+    removeVolunteerFromTask: vi.fn(),
+    getEvent: vi.fn(),
   }
 }));
 
@@ -216,7 +219,7 @@ describe('Bot Commands', () => {
       vi.mocked(DrizzleDatabaseService.getTaskAssignments).mockResolvedValue([]);
 
       const { handleListEventsCommand } = await import('../src/commands/events');
-      
+
       await handleListEventsCommand(mockCtx);
 
       expect(DrizzleDatabaseService.getAllEvents).toHaveBeenCalled();
@@ -224,4 +227,161 @@ describe('Bot Commands', () => {
       expect(mockCtx.reply).toHaveBeenCalled();
     });
   });
+
+  describe('Volunteer Commands', () => {
+    describe('Uncommit Command', () => {
+      it('should reject uncommit if volunteer does not have username', async () => {
+        const { uncommitCommand } = await import('../src/commands/volunteers');
+
+        mockCtx.from.username = undefined;
+
+        await uncommitCommand(mockCtx);
+
+        expect(mockCtx.reply).toHaveBeenCalledWith('❌ Your Telegram account must have a username to use this command.');
+      });
+
+      it('should reject uncommit with invalid task ID', async () => {
+        const { uncommitCommand } = await import('../src/commands/volunteers');
+
+        mockCtx.match = 'invalid';
+
+        await uncommitCommand(mockCtx);
+
+        expect(mockCtx.reply).toHaveBeenCalledWith('❌ Invalid task ID. Please provide a valid number.');
+      });
+
+      it('should reject uncommit if task is already complete', async () => {
+        const { DrizzleDatabaseService } = await import('../src/db-drizzle');
+        const { uncommitCommand } = await import('../src/commands/volunteers');
+
+        mockCtx.match = '5';
+
+        vi.mocked(DrizzleDatabaseService.getVolunteerByHandle).mockResolvedValue({
+          id: 1,
+          name: 'Test User',
+          telegram_handle: 'testuser',
+          status: 'active',
+          commitments: 3,
+          commit_count_start_date: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+        vi.mocked(DrizzleDatabaseService.getTask).mockResolvedValue({
+          id: 5,
+          event_id: 1,
+          title: 'Setup venue',
+          description: 'Setup tables and chairs',
+          status: 'complete',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+        await uncommitCommand(mockCtx);
+
+        expect(DrizzleDatabaseService.getTaskAssignments).not.toHaveBeenCalled();
+        expect(DrizzleDatabaseService.removeVolunteerFromTask).not.toHaveBeenCalled();
+        expect(mockCtx.reply).toHaveBeenCalledWith('❌ Cannot uncommit from a completed task.');
+      });
+
+      it('should successfully uncommit volunteer from a task', async () => {
+        const { DrizzleDatabaseService } = await import('../src/db-drizzle');
+        const { uncommitCommand } = await import('../src/commands/volunteers');
+
+        mockCtx.match = '5';
+
+        vi.mocked(DrizzleDatabaseService.getVolunteerByHandle).mockResolvedValue({
+          id: 1,
+          name: 'Test User',
+          telegram_handle: 'testuser',
+          status: 'active',
+          commitments: 3,
+          commit_count_start_date: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+        vi.mocked(DrizzleDatabaseService.getTask).mockResolvedValue({
+          id: 5,
+          event_id: 1,
+          title: 'Setup venue',
+          description: 'Setup tables and chairs',
+          status: 'todo',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+        vi.mocked(DrizzleDatabaseService.getTaskAssignments).mockResolvedValue([
+          {
+            id: 1,
+            task_id: 5,
+            volunteer_id: 1,
+            assigned_at: new Date().toISOString()
+          }
+        ]);
+
+        vi.mocked(DrizzleDatabaseService.removeVolunteerFromTask).mockResolvedValue(true);
+
+        vi.mocked(DrizzleDatabaseService.getEvent).mockResolvedValue({
+          id: 1,
+          title: 'Test Event',
+          date: new Date().toISOString(),
+          format: 'workshop',
+          status: 'planning',
+          venue: 'Test Venue',
+          details: 'Test details',
+          created_by: 1,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+        await uncommitCommand(mockCtx);
+
+        expect(DrizzleDatabaseService.getVolunteerByHandle).toHaveBeenCalledWith('testuser');
+        expect(DrizzleDatabaseService.getTask).toHaveBeenCalledWith(5);
+        expect(DrizzleDatabaseService.getTaskAssignments).toHaveBeenCalledWith(5);
+        expect(DrizzleDatabaseService.removeVolunteerFromTask).toHaveBeenCalledWith(5, 1);
+        expect(mockCtx.reply).toHaveBeenCalledWith(
+          expect.stringContaining('Successfully uncommitted from task'),
+          expect.any(Object)
+        );
+      });
+
+      it('should reject uncommit if volunteer is not assigned to task', async () => {
+        const { DrizzleDatabaseService } = await import('../src/db-drizzle');
+        const { uncommitCommand } = await import('../src/commands/volunteers');
+
+        mockCtx.match = '5';
+
+        vi.mocked(DrizzleDatabaseService.getVolunteerByHandle).mockResolvedValue({
+          id: 1,
+          name: 'Test User',
+          telegram_handle: 'testuser',
+          status: 'active',
+          commitments: 3,
+          commit_count_start_date: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+        vi.mocked(DrizzleDatabaseService.getTask).mockResolvedValue({
+          id: 5,
+          event_id: 1,
+          title: 'Setup venue',
+          description: 'Setup tables and chairs',
+          status: 'todo',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+        vi.mocked(DrizzleDatabaseService.getTaskAssignments).mockResolvedValue([]);
+
+        await uncommitCommand(mockCtx);
+
+        expect(DrizzleDatabaseService.removeVolunteerFromTask).not.toHaveBeenCalled();
+        expect(mockCtx.reply).toHaveBeenCalledWith('❌ You are not currently assigned to this task.');
+      });
+    });
+  });
+
 });
