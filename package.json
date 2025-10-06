@@ -43,7 +43,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "db:generate": "drizzle-kit generate",
-    "db:introspect": "ts-node scripts/introspect-db.ts"
+    "db:introspect": "ts-node scripts/introspect-db.ts",
+    "prepare": "husky"
   },
   "keywords": [
     "telegram",
@@ -63,15 +64,24 @@
     "grammy": "^1.19.2",
     "postgres": "^3.4.7"
   },
+  
   "devDependencies": {
     "@types/jest": "^29.5.0",
     "@types/node": "^20.0.0",
     "@types/supertest": "^6.0.0",
     "dotenv-cli": "^7.4.2",
     "drizzle-kit": "^0.31.4",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.3",
     "supertest": "^7.0.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.0.0",
     "vitest": "^1.6.0"
-  }
+  },
+  "lint-staged": {
+  "**/*.{js,jsx,ts,tsx}": [
+    "prettier --write",
+    "eslint --fix"
+  ]
+}
 }
