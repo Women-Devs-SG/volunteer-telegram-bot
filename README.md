@@ -173,6 +173,7 @@ npm run db:introspect      # Generate current schema
 - `/start` - Welcome message and help
 - `/onboard` - Learn about the volunteer program
 - `/my_status` - Check your volunteer status and progress
+- `/my_tasks` - View your assigned tasks
 - `/commit <event_id> <role>` - Sign up for a role in an event
 
 ### Admin Commands
