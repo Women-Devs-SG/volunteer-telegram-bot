@@ -264,6 +264,86 @@ export const commitCommand = async (ctx: CommandContext<Context>) => {
   );
 };
 
+/** /uncommit command - allows volunteer to remove themselves from a task */
+export const uncommitCommand = async (ctx: CommandContext<Context>) => {
+  const args = ctx.match?.toString().trim().split(' ') || [];
+  const telegramHandle = ctx.from?.username;
+
+  if (!telegramHandle) {
+    await ctx.reply('❌ Your Telegram account must have a username to use this command.');
+    return;
+  }
+
+  if (args.length !== 1) {
+    await ctx.reply(
+      '❌ **Usage:** `/uncommit <task_id>`\n\n' +
+      '**Example:** `/uncommit 5`',
+      { parse_mode: 'Markdown' }
+    );
+    return;
+  }
+
+  const taskId = parseInt(args[0] || '');
+
+  // Validate task ID
+  if (isNaN(taskId)) {
+    await ctx.reply('❌ Invalid task ID. Please provide a valid number.');
+    return;
+  }
+
+  // Check if volunteer exists
+  const volunteer = await DrizzleDatabaseService.getVolunteerByHandle(telegramHandle);
+
+  if (!volunteer) {
+    await ctx.reply('❌ You need to be registered as a volunteer first.');
+    return;
+  }
+
+  // Check if task exists
+  const task = await DrizzleDatabaseService.getTask(taskId);
+
+  if (!task) {
+    await ctx.reply('❌ Task not found. Please check the task ID.');
+    return;
+  }
+
+  // Check if task is already complete
+  if (task.status === 'complete') {
+    await ctx.reply('❌ Cannot uncommit from a completed task.');
+    return;
+  }
+
+  // Check if volunteer is assigned to this task
+  const assignments = await DrizzleDatabaseService.getTaskAssignments(taskId);
+  const isAssigned = assignments.some(a => a.volunteer_id === volunteer.id);
+
+  if (!isAssigned) {
+    await ctx.reply('❌ You are not currently assigned to this task.');
+    return;
+  }
+
+  // Remove volunteer from task
+  const success = await DrizzleDatabaseService.removeVolunteerFromTask(taskId, volunteer.id);
+
+  if (!success) {
+    await ctx.reply('❌ Failed to remove assignment. Please try again later.');
+    return;
+  }
+
+  // Get event details for confirmation
+  const event = await DrizzleDatabaseService.getEvent(task.event_id);
+
+  const safeTaskTitle = escapeMarkdown(task.title);
+  const safeEventTitle = event?.title ? escapeMarkdown(event.title) : 'Unknown';
+  await ctx.reply(
+    `✅ **Successfully uncommitted from task**\n\n` +
+    `Task: ${safeTaskTitle}\n` +
+    `Event: ${safeEventTitle}\n\n` +
+    `You have been removed from this task.`,
+    { parse_mode: 'Markdown' }
+  );
+};
+
 // /assign_task command (admin only) - assign volunteer to task
 export const assignTaskCommand = async (ctx: CommandContext<Context>) => {
   const args = ctx.match?.toString().trim().split(' ') || [];
@@ -374,25 +454,20 @@ export const updateTaskStatusCommand = async (ctx: CommandContext<Context>) => {
   if (success) {
     let responseMessage = '';
     
-    // If task is being marked as complete, increment commit count for assigned volunteers
-    if (status === 'complete') {
+    // If task was marked as complete AND it wasn't already complete, show feedback about commitment increments
+    if (status === 'complete' && task.status !== 'complete') {
       const assignments = await DrizzleDatabaseService.getTaskAssignments(taskId);
       for (const assignment of assignments) {
+        // Fetch updated volunteer data to show new commitment count
         const volunteer = await DrizzleDatabaseService.getVolunteerById(assignment.volunteer_id);
         if (volunteer) {
-          const newCommitments = volunteer.commitments + 1;
-          await DrizzleDatabaseService.setVolunteerCommitments(volunteer.id, newCommitments);
           const safeName = escapeMarkdown(volunteer.name);
           const safeHandle = escapeMarkdown(volunteer.telegram_handle);
-          responseMessage += `🎉 ${safeName} (@${safeHandle}) commitment count increased to ${newCommitments}!\n`;
-          // Trigger promotion scan immediately for this volunteer
-          const promoted = await promoteIfEligible(ctx.api as any, volunteer.id);
-          if (promoted) {
-            responseMessage += `🚀 ${safeName} (@${safeHandle}) has been promoted to ACTIVE!\n`;
-          }
+          responseMessage += `🎉 ${safeName} (@${safeHandle}) commitment count increased to ${volunteer.commitments}!\n`;
         }
       }
     }
+    
     
     const event = await DrizzleDatabaseService.getEvent(task.event_id);
     const safeTaskTitle2 = escapeMarkdown(task.title);

@@ -92,6 +92,7 @@ Welcome! I help manage volunteer onboarding, event planning, and admin tasks.
 • \`/my_status\` - Check your volunteer status
 • \`/my_tasks\` - View your assigned tasks
 • \`/commit <task_id>\` - Sign up for event tasks
+• \`/uncommit <task_id>\` - Remove yourself from a task
 • \`/list_events\` - View upcoming events
 • \`/event_details <event_id>\` - View detailed event information
 • \`/create_event\` - Create a new event (interactive)

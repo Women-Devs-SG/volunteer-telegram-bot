@@ -733,7 +733,8 @@ export const listEventsCommand = async (ctx: CommandContext<Context>) => {
 
   message += '💡 <b>Quick Commands:</b>\n';
   message += '• <code>/commit &lt;task_id&gt;</code> - Sign up for a task\n';
-  message += '• <code>/event_details &lt;event_id&gt;</code> - View detailed event info and tasks';
+  message += '• <code>/event_details &lt;event_id&gt;</code> - View detailed event info and tasks\n';
+  message += '• <code>/uncommit &lt;task_id&gt;</code> - Remove yourself from a task';
 
   await ctx.reply(message, { parse_mode: 'HTML' });
 };

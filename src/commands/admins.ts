@@ -428,9 +428,9 @@ export const handleAddVolunteerWizard = async (ctx: Context) => {
       await DrizzleDatabaseService.setVolunteerCommitments(v.id, count);
       const finalVolunteer = { ...v, commitments: count } as any;
       await ctx.reply(
-        `✅ **Volunteer added successfully!**\n\n` +
+        `✅ <b>Volunteer added successfully!</b>\n\n` +
         formatVolunteerStatus(finalVolunteer),
-        { parse_mode: 'Markdown' }
+        { parse_mode: 'HTML' }
       );
       addVolunteerState.delete(userId);
       break;
