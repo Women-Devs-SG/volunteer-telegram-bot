@@ -20,10 +20,10 @@ import {
   handleOnboardCallback,
   myStatusCommand, 
   commitCommand,
+  uncommitCommand,
   assignTaskCommand,
   updateTaskStatusCommand,
   volunteerStatusReportCommand,
-  uncommitCommand
 } from './commands/volunteers';
 
 import { DrizzleDatabaseService } from './db-drizzle';
