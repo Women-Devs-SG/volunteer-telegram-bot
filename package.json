@@ -18,7 +18,7 @@
     "db:migrate:local": "dotenv -e .env.local -- ts-node src/migrate.ts",
     "db:seed:local": "dotenv -e .env.local -- ts-node scripts/seed-data.ts",
     "db:studio:local": "dotenv -e .env.local -- drizzle-kit studio",
-    "test:local": "dotenv -e .env.local -- npm test",
+    "test:local": "dotenv -e .env.test -- npm test",
     "_comment2": "=== STAGING ENVIRONMENT ===",
     "dev:staging": "dotenv -e .env.staging -- ts-node src/bot.ts",
     "setup:staging": "npm run db:migrate:staging",
@@ -67,11 +67,12 @@
     "@types/jest": "^29.5.0",
     "@types/node": "^20.0.0",
     "@types/supertest": "^6.0.0",
+    "@vitest/coverage-v8": "^3.2.4",
     "dotenv-cli": "^7.4.2",
     "drizzle-kit": "^0.31.4",
     "supertest": "^7.0.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.0.0",
-    "vitest": "^1.6.0"
+    "vitest": "^3.2.4"
   }
 }
