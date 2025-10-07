@@ -154,7 +154,7 @@ export const myTasksCommand = async (ctx: CommandContext<Context>) => {
     await ctx.reply(
       `📋 **My Tasks**\n\n` +
       `You currently have no active tasks assigned.\n\n` +
-      `Use \`/list_events\` to see available events and \`/commit <task_id>\` to sign up for tasks!`,
+      `💡 Use \`/list_events\` to see available events and \`/commit <task_id>\` to sign up for tasks!`,
       { parse_mode: 'Markdown' }
     );
     return;
@@ -170,7 +170,7 @@ export const myTasksCommand = async (ctx: CommandContext<Context>) => {
     const taskTitle = escapeMarkdown(task.title);
     const taskStatus = formatTaskStatus(task.status);
     message += `${taskNumber++}. **Task #${task.id}:** ${taskTitle}\n`;
-    message += `   Event: ${eventTitle}\n`;
+    message += `   Event: ${eventTitle} (ID: ${task.event_id})\n`;
     message += `   Status: ${taskStatus}\n`;
     
     if (task.description) {
@@ -181,7 +181,8 @@ export const myTasksCommand = async (ctx: CommandContext<Context>) => {
     message += `\n`;
   }
   
-  message += `💡 Use \`/event_details <event_id>\` to see more details about an event.`;
+  message += `💡 Use \`/event_details <event_id>\` to see more details about an event.\n`;
+  message += `💡 Use \`/uncommit <task_id>\` to remove yourself from a task.\n`;
   
   await ctx.reply(message, { parse_mode: 'Markdown' });
 };
