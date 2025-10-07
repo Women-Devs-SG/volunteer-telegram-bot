@@ -395,25 +395,20 @@ export const updateTaskStatusCommand = async (ctx: CommandContext<Context>) => {
   if (success) {
     let responseMessage = '';
     
-    // If task is being marked as complete, increment commit count for assigned volunteers
-    if (status === 'complete') {
+    // If task was marked as complete AND it wasn't already complete, show feedback about commitment increments
+    if (status === 'complete' && task.status !== 'complete') {
       const assignments = await DrizzleDatabaseService.getTaskAssignments(taskId);
       for (const assignment of assignments) {
+        // Fetch updated volunteer data to show new commitment count
         const volunteer = await DrizzleDatabaseService.getVolunteerById(assignment.volunteer_id);
         if (volunteer) {
-          const newCommitments = volunteer.commitments + 1;
-          await DrizzleDatabaseService.setVolunteerCommitments(volunteer.id, newCommitments);
           const safeName = escapeMarkdown(volunteer.name);
           const safeHandle = escapeMarkdown(volunteer.telegram_handle);
-          responseMessage += `🎉 ${safeName} (@${safeHandle}) commitment count increased to ${newCommitments}!\n`;
-          // Trigger promotion scan immediately for this volunteer
-          const promoted = await promoteIfEligible(ctx.api as any, volunteer.id);
-          if (promoted) {
-            responseMessage += `🚀 ${safeName} (@${safeHandle}) has been promoted to ACTIVE!\n`;
-          }
+          responseMessage += `🎉 ${safeName} (@${safeHandle}) commitment count increased to ${volunteer.commitments}!\n`;
         }
       }
     }
+    
     
     const event = await DrizzleDatabaseService.getEvent(task.event_id);
     const safeTaskTitle2 = escapeMarkdown(task.title);
