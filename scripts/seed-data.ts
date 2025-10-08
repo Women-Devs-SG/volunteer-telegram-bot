@@ -153,6 +153,15 @@ async function seedData() {
         venue: 'Marina Bay Sands Convention Centre',
         details: 'Full-day conference featuring talks on artificial intelligence and machine learning.',
         created_by: volunteerUsers[0].id // Alice
+      },
+      {
+        title: 'AI/ML Conference 2026',
+        date: new Date('2027-01-16T09:00:00Z'),
+        format: 'conference',
+        status: 'cancelled',
+        venue: 'Marina Bay Sands Convention Centre',
+        details: 'Full-day conference featuring talks on artificial intelligence and machine learning.',
+        created_by: volunteerUsers[0].id // Alice
       }
     ]).returning();
 
