@@ -13,6 +13,7 @@ vi.mock('../src/db-drizzle', () => ({
     updateVolunteerStatus: vi.fn(),
     getEventTasks: vi.fn(),
     getTaskAssignments: vi.fn(),
+    getVolunteerTasks: vi.fn(),
     getTask: vi.fn(),
     removeVolunteerFromTask: vi.fn(),
     getEvent: vi.fn(),
@@ -228,6 +229,163 @@ describe('Bot Commands', () => {
     });
   });
 
+  describe('/my_tasks command', () => {
+    it('should show active tasks for a registered volunteer', async () => {
+      mockCtx.from = { username: 'testuser' };
+      const { DrizzleDatabaseService } = await import('../src/db-drizzle');
+
+      //Mock volunteer exists
+      vi.mocked(DrizzleDatabaseService.getVolunteerByHandle).mockResolvedValue({
+        id: 1,
+        name: 'Test User',
+        telegram_handle: 'testuser',
+        status: 'active',
+        commitments: 2,
+        commit_count_start_date: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+
+      //Mock getVolunteerTasks
+      vi.mocked(DrizzleDatabaseService.getVolunteerTasks).mockResolvedValue([
+        {
+          id: 1,
+          event_id: 1,
+          title: 'Test Task In Progress',
+          description: 'Test task description',
+          status: 'in_progress',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        {
+          id: 2,
+          event_id: 1,
+          title: 'Completed Task',
+          description: 'This should not appear',
+          status: 'complete',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        },
+        {
+          id: 3,
+          event_id: 2,
+          title: 'Todo Task',
+          description: 'Another test task',
+          status: 'todo',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      ]);
+
+      // mock getEvent
+      vi.mocked(DrizzleDatabaseService.getEvent).mockImplementation((id: number) => {
+        if (id === 1) {
+          return Promise.resolve({
+            id: 1,
+            title: 'Test Event 1',
+            date: new Date().toISOString(),
+            format: 'workshop',
+            status: 'planning',
+            venue: 'Test Venue',
+            details: 'Test details',
+            created_by: 1,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+        } else if (id === 2) {
+          return Promise.resolve({
+            id: 2,
+            title: 'Test Event 2',
+            date: new Date().toISOString(),
+            format: 'conference',
+            status: 'published',
+            venue: 'Another Venue',
+            details: 'More details',
+            created_by: 1,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+        }
+        return Promise.resolve(null);
+      });
+
+      const { myTasksCommand } = await import('../src/commands/volunteers');
+      
+      await myTasksCommand(mockCtx);
+
+      expect(DrizzleDatabaseService.getVolunteerByHandle).toHaveBeenCalledWith('testuser');
+      expect(DrizzleDatabaseService.getVolunteerTasks).toHaveBeenCalledWith(1);
+      expect(DrizzleDatabaseService.getEvent).toHaveBeenCalledWith(1);
+      expect(DrizzleDatabaseService.getEvent).toHaveBeenCalledWith(2);
+      expect(mockCtx.reply).toHaveBeenCalled();
+      
+      const replyCall = mockCtx.reply.mock.calls[0];
+      const message = replyCall[0];
+      expect(message).toContain('My Active Tasks');
+      expect(message).toContain('Test Task In Progress');
+      expect(message).toContain('Todo Task');
+      expect(message).not.toContain('Completed Task');
+    });
+
+    it('should show message when volunteer has no active tasks', async () => {
+      mockCtx.from = { username: 'testuser' };
+      const { DrizzleDatabaseService } = await import('../src/db-drizzle');
+
+      // Mock volunteer exists
+      vi.mocked(DrizzleDatabaseService.getVolunteerByHandle).mockResolvedValue({
+        id: 1,
+        name: 'Test User',
+        telegram_handle: 'testuser',
+        status: 'active',
+        commitments: 2,
+        commit_count_start_date: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      });
+
+      // Mock no tasks/only completed tasks
+      vi.mocked(DrizzleDatabaseService.getVolunteerTasks).mockResolvedValue([
+        {
+          id: 1,
+          event_id: 1,
+          title: 'Completed Task',
+          description: 'This should not count',
+          status: 'complete',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      ]);
+
+      const { myTasksCommand } = await import('../src/commands/volunteers');
+      
+      await myTasksCommand(mockCtx);
+
+      expect(mockCtx.reply).toHaveBeenCalled();
+      
+      const replyCall = mockCtx.reply.mock.calls[0];
+      const message = replyCall[0];
+      expect(message).toContain('You currently have no active tasks assigned');
+    });
+
+    it('should show error message for unregistered user', async () => {
+      mockCtx.from = { username: 'nonexistentuser' };
+      const { DrizzleDatabaseService } = await import('../src/db-drizzle');
+
+      //Mock volunteer does not exist
+      vi.mocked(DrizzleDatabaseService.getVolunteerByHandle).mockResolvedValue(null);
+
+      const { myTasksCommand } = await import('../src/commands/volunteers');
+      
+      await myTasksCommand(mockCtx);
+
+      expect(DrizzleDatabaseService.getVolunteerByHandle).toHaveBeenCalledWith('nonexistentuser');
+      expect(mockCtx.reply).toHaveBeenCalled();
+      
+      const replyCall = mockCtx.reply.mock.calls[0];
+      const message = replyCall[0];
+      expect(message).toContain("You're not registered as a volunteer yet!");
+    });
+  });
   describe('Volunteer Commands', () => {
     describe('Uncommit Command', () => {
       it('should reject uncommit if volunteer does not have username', async () => {

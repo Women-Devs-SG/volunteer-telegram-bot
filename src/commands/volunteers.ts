@@ -127,6 +127,66 @@ export const myStatusCommand = async (ctx: CommandContext<Context>) => {
   await ctx.reply(statusMessage, { parse_mode: 'HTML' });
 };
 
+// /my_tasks command - shows list of tasks assigned to the volunteer that are not completed
+export const myTasksCommand = async (ctx: CommandContext<Context>) => {
+  const telegramHandle = ctx.from?.username;
+  
+  if (!telegramHandle) {
+    await ctx.reply('❌ Please set a Telegram username to use this bot.');
+    return;
+  }
+
+  const volunteer = await DrizzleDatabaseService.getVolunteerByHandle(telegramHandle);
+  
+  if (!volunteer) {
+    await ctx.reply(
+      `👋 You're not registered as a volunteer yet!\n\n` +
+      `To get started, please contact an admin or use /onboard to learn more about our volunteer program.`
+    );
+    return;
+  }
+
+  // filter out completed tasks
+  const allTasks = await DrizzleDatabaseService.getVolunteerTasks(volunteer.id);
+  const activeTasks = allTasks.filter(task => task.status !== 'complete');
+  
+  if (activeTasks.length === 0) {
+    await ctx.reply(
+      `📋 **My Tasks**\n\n` +
+      `You currently have no active tasks assigned.\n\n` +
+      `💡 Use \`/list_events\` to see available events and \`/commit <task_id>\` to sign up for tasks!`,
+      { parse_mode: 'Markdown' }
+    );
+    return;
+  }
+
+  let message = `📋 **My Active Tasks** (${activeTasks.length})\n\n`;
+  let taskNumber = 1;
+  
+  for (const task of activeTasks) {
+    //get event details
+    const event = await DrizzleDatabaseService.getEvent(task.event_id);
+    const eventTitle = event?.title ? escapeMarkdown(event.title) : 'Unknown Event';
+    const taskTitle = escapeMarkdown(task.title);
+    const taskStatus = formatTaskStatus(task.status);
+    message += `${taskNumber++}. **Task #${task.id}:** ${taskTitle}\n`;
+    message += `   Event: ${eventTitle} (ID: ${task.event_id})\n`;
+    message += `   Status: ${taskStatus}\n`;
+    
+    if (task.description) {
+      const taskDescription = escapeMarkdown(task.description);
+      message += `   Description: ${taskDescription}\n`;
+    }
+    
+    message += `\n`;
+  }
+  
+  message += `💡 Use \`/event_details <event_id>\` to see more details about an event.\n`;
+  message += `💡 Use \`/uncommit <task_id>\` to remove yourself from a task.\n`;
+  
+  await ctx.reply(message, { parse_mode: 'Markdown' });
+};
+
 // /commit command - volunteer commits to a task
 export const commitCommand = async (ctx: CommandContext<Context>) => {
   const args = ctx.match?.toString().trim().split(' ') || [];

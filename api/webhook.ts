@@ -9,6 +9,7 @@ import {
   onboardCommand,
   handleOnboardCallback,
   myStatusCommand,
+  myTasksCommand,
   commitCommand,
   assignTaskCommand,
   updateTaskStatusCommand,
@@ -89,6 +90,7 @@ Welcome! I help manage volunteer onboarding, event planning, and admin tasks.
 **For Volunteers:**
 • \`/onboard\` - Learn about the volunteer program
 • \`/my_status\` - Check your volunteer status
+• \`/my_tasks\` - View your assigned tasks
 • \`/commit <task_id>\` - Sign up for event tasks
 • \`/uncommit <task_id>\` - Remove yourself from a task
 • \`/list_events\` - View upcoming events
@@ -161,6 +163,7 @@ bot.command('help', async (ctx) => {
 bot.command('onboard', onboardCommand);
 bot.command('onboarding', onboardCommand);
 bot.command('my_status', myStatusCommand);
+bot.command('my_tasks', myTasksCommand);
 bot.command('commit', commitCommand);
 
 // Admin authentication
@@ -230,6 +233,7 @@ const setupBotCommands = async () => {
       { command: 'onboard', description: 'Learn about the volunteer program' },
       { command: 'onboarding', description: 'Learn about the volunteer program (interactive)' },
       { command: 'my_status', description: 'Check your volunteer status' },
+      { command: 'my_tasks', description: 'View your assigned tasks' },
       { command: 'commit', description: 'Sign up for event tasks' },
       { command: 'admin_login', description: 'Authenticate as admin' },
       { command: 'list_volunteers', description: 'View all volunteers (admin)' },
