@@ -438,6 +438,21 @@ This parity is required because Vercel uses `api/webhook.ts` to process Telegram
 
 MIT License - see [LICENSE](./LICENSE) file for details.
 
+## ⚠️ Troubleshooting
+
+### Bot Command Registration Failures
+
+If you see 
+```❌ Failed to set bot commands: HttpError: Network request for 'setMyCommands' failed!```, add these lines in src/bot.ts (after the imports):
+
+```
+import { setDefaultResultOrder } from "node:dns";
+setDefaultResultOrder("ipv6first");
+```
+
+This fixes DNS resolution issues with Node.js v17+ by prioritizing IPv6 connections to the Telegram API.
+
+
 ## 🙏 Acknowledgments
 
 - Built for the [Women Developers SG](https://www.womendevelopers.sg/) community
