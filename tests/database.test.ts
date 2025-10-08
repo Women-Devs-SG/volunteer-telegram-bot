@@ -137,15 +137,26 @@ describe('Database Service', () => {
         'Published event',
         'Online'
       );
+
+      const event4 = await DrizzleDatabaseService.createEvent(
+        'Cancelled Event',
+        '2024-10-25T17:00:00Z',
+        'workshop',
+        'Cancelled workshop',
+        'Tech Hub'
+      );
       
       // Set event2 as completed
       await DrizzleDatabaseService.updateEventStatus(event2!.id, 'completed');
       
       // Set event3 as published
       await DrizzleDatabaseService.updateEventStatus(event3!.id, 'published');
+
+      // Set event4 as cancelled
+      await DrizzleDatabaseService.updateEventStatus(event4!.id, 'cancelled');
       
       // Get all incomplete events
-      const incompleteEvents = await DrizzleDatabaseService.getAllIncompleteEvents();
+      const incompleteEvents = await DrizzleDatabaseService.getAllUpcomingEvents();
       
       // Check that only non-completed events are returned
       expect(incompleteEvents).toHaveLength(2);
@@ -155,12 +166,14 @@ describe('Database Service', () => {
       expect(titles).toContain('Incomplete Event 1');
       expect(titles).toContain('Incomplete Event 2');
       expect(titles).not.toContain('Completed Event');
+      expect(titles).not.toContain('Cancelled Event');
       
       // Verify their statuses
       const statuses = incompleteEvents.map(e => e.status);
       expect(statuses).toContain('planning');
       expect(statuses).toContain('published');
       expect(statuses).not.toContain('completed');
+      expect(statuses).not.toContain('cancelled');
     });
   });
 

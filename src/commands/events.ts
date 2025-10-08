@@ -674,7 +674,7 @@ export const handleRemoveEventConfirmation = async (ctx: Context) => {
 
 // /list_events command - list upcoming events with simplified format
 export const listEventsCommand = async (ctx: CommandContext<Context>) => {
-  const allEvents = await DrizzleDatabaseService.getAllIncompleteEvents();
+  const allEvents = await DrizzleDatabaseService.getAllUpcomingEvents();
   // Sort chronologically by event date (TBD sentinel will naturally go last)
   const events = [...allEvents].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 

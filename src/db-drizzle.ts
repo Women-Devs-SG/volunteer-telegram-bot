@@ -350,11 +350,14 @@ export class DrizzleDatabaseService {
     }
   }
 
-  static async getAllIncompleteEvents(): Promise<Event[]> {
+  static async getAllUpcomingEvents(): Promise<Event[]> {
     try {
       const result = await db.select()
         .from(events)
-        .where(ne(events.status, 'completed'))
+        .where(and(
+          ne(events.status, 'completed'),
+          ne(events.status, 'cancelled')
+        ))
         .orderBy(events.created_at);
 
       return result.map((event: typeof events.$inferSelect) => ({
