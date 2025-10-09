@@ -420,7 +420,7 @@ describe('Bot Commands', () => {
 
         expect(DrizzleDatabaseService.getTask).toHaveBeenCalledWith(5);
         expect(DrizzleDatabaseService.assignVolunteerToTask).not.toHaveBeenCalled();
-        expect(mockCtx.reply).toHaveBeenCalledWith('❌ Task is already complete');
+        expect(mockCtx.reply).toHaveBeenCalledWith('❌ Task is already complete!');
       });
     });
 

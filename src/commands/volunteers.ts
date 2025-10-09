@@ -233,7 +233,7 @@ export const commitCommand = async (ctx: CommandContext<Context>) => {
 
   // Check if task is already complete
   if (task.status === 'complete') {
-    await ctx.reply('❌ Task is already complete');
+    await ctx.reply('❌ Task is already complete!');
     return;
   }
 
