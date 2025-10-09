@@ -231,6 +231,12 @@ export const commitCommand = async (ctx: CommandContext<Context>) => {
     return;
   }
 
+  // Check if task is already complete
+  if (task.status === 'complete') {
+    await ctx.reply('❌ Task is already complete');
+    return;
+  }
+
   // Check if volunteer can commit to this task
   const { canCommit, reason } = await canVolunteerCommit(volunteer.id, taskId);
   
