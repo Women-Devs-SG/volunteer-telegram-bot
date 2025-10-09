@@ -379,6 +379,12 @@ export const assignTaskCommand = async (ctx: CommandContext<Context>) => {
     return;
   }
 
+  // Check if task is already complete
+  if (task.status === 'complete') {
+    await ctx.reply('❌ Task is already complete!');
+    return;
+  }
+
   // Check if volunteer exists
   const volunteer = await DrizzleDatabaseService.getVolunteerByHandle(telegramHandle);
   if (!volunteer) {
