@@ -11,6 +11,7 @@
     "lint": "tsc --noEmit",
     "precommit": "npm run lint && npm run test",
     "_comment1": "=== LOCAL DEVELOPMENT ===",
+    "test:local:coverage": "dotenv -e .env.local -- vitest run --coverage",
     "dev:local": "dotenv -e .env.local -- ts-node src/bot.ts",
     "setup:local": "npm run db:migrate:local && npm run db:seed:local",
     "setup:fresh": "npm run reset:local && npm run setup:local",
@@ -67,11 +68,12 @@
     "@types/jest": "^29.5.0",
     "@types/node": "^20.0.0",
     "@types/supertest": "^6.0.0",
+    "@vitest/coverage-v8": "^3.2.4",
     "dotenv-cli": "^7.4.2",
     "drizzle-kit": "^0.31.4",
     "supertest": "^7.0.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.0.0",
-    "vitest": "^1.6.0"
+    "vitest": "^3.2.4"
   }
 }
