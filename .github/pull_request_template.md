@@ -26,7 +26,7 @@ Fixes #(issue number)
 
 ## Testing
 <!-- Describe the tests you ran to verify your changes -->
-- [ ] I have run `npm test` and all tests pass
+- [ ] I have run `npm run test:local` and all tests pass
 - [ ] I have run `npm run lint` and there are no linting errors
 - [ ] I have tested the bot commands manually in development
 - [ ] I have verified the database operations work correctly
@@ -36,7 +36,7 @@ Fixes #(issue number)
 ### Test Commands Run
 ```bash
 # List the specific commands you ran to test
-npm test
+npm run test:local
 npm run lint
 npm run setup:local
 ```
@@ -79,8 +79,9 @@ npm run setup:local
 1. Pull the branch locally
 2. Run `npm install` to ensure dependencies are up to date
 3. Run `npm run setup:local` to set up the local database
-4. Run `npm test` to verify all tests pass
-5. Test the bot functionality manually if applicable
+4. Run `npm run test:local` to verify all tests pass
+5. Run `npm run check:parity` if there are changes to bot commands
+6. Test the bot functionality manually if applicable
 
 ### Review Focus Areas
 - [ ] Code quality and adherence to project standards
