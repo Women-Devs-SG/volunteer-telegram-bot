@@ -80,8 +80,8 @@ npm run setup:local
 2. Run `npm install` to ensure dependencies are up to date
 3. Run `npm run setup:local` to set up the local database
 4. Run `npm run test:local` to verify all tests pass
-4. Run `npm run check:parity` if there are changes to bot commands
-5. Test the bot functionality manually if applicable
+5. Run `npm run check:parity` if there are changes to bot commands
+6. Test the bot functionality manually if applicable
 
 ### Review Focus Areas
 - [ ] Code quality and adherence to project standards
