@@ -8,7 +8,7 @@ vi.mock('../src/db-drizzle', () => ({
     createVolunteer: vi.fn(),
     isAdmin: vi.fn(),
     getAllVolunteers: vi.fn(),
-    getAllEvents: vi.fn(),
+    getAllUpcomingEvents: vi.fn(),
     createEvent: vi.fn(),
     updateVolunteerStatus: vi.fn(),
     getEventTasks: vi.fn(),
@@ -180,7 +180,7 @@ describe('Bot Commands', () => {
     it('should handle list events command', async () => {
       const { DrizzleDatabaseService } = await import('../src/db-drizzle');
       
-      vi.mocked(DrizzleDatabaseService.getAllEvents).mockResolvedValue([
+      vi.mocked(DrizzleDatabaseService.getAllUpcomingEvents).mockResolvedValue([
         {
           id: 1,
           title: 'Test Event',
@@ -223,7 +223,7 @@ describe('Bot Commands', () => {
 
       await handleListEventsCommand(mockCtx);
 
-      expect(DrizzleDatabaseService.getAllEvents).toHaveBeenCalled();
+      expect(DrizzleDatabaseService.getAllUpcomingEvents).toHaveBeenCalled();
       expect(DrizzleDatabaseService.getEventTasks).toHaveBeenCalledWith(1);
       expect(mockCtx.reply).toHaveBeenCalled();
     });
