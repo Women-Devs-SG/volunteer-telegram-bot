@@ -17,6 +17,7 @@ vi.mock('../src/db-drizzle', () => ({
     getTask: vi.fn(),
     removeVolunteerFromTask: vi.fn(),
     getEvent: vi.fn(),
+    assignVolunteerToTask: vi.fn()
   }
 }));
 
@@ -44,7 +45,7 @@ describe('Bot Commands', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    
+
     mockBot = new Bot('mock-token');
     mockCtx = {
       message: {
@@ -67,7 +68,7 @@ describe('Bot Commands', () => {
   describe('Registration Commands', () => {
     it('should handle start command for new users', async () => {
       const { DrizzleDatabaseService } = await import('../src/db-drizzle');
-      
+
       // Mock that user doesn't exist
       vi.mocked(DrizzleDatabaseService.getVolunteerByHandle).mockResolvedValue(null);
       vi.mocked(DrizzleDatabaseService.createVolunteer).mockResolvedValue({
@@ -83,7 +84,7 @@ describe('Bot Commands', () => {
 
       // Import and test the start command handler
       const { handleStartCommand } = await import('../src/commands/volunteers');
-      
+
       await handleStartCommand(mockCtx);
 
       expect(DrizzleDatabaseService.getVolunteerByHandle).toHaveBeenCalledWith('testuser');
@@ -97,7 +98,7 @@ describe('Bot Commands', () => {
 
     it('should handle start command for existing users', async () => {
       const { DrizzleDatabaseService } = await import('../src/db-drizzle');
-      
+
       // Mock that user exists
       vi.mocked(DrizzleDatabaseService.getVolunteerByHandle).mockResolvedValue({
         id: 1,
@@ -111,7 +112,7 @@ describe('Bot Commands', () => {
       });
 
       const { handleStartCommand } = await import('../src/commands/volunteers');
-      
+
       await handleStartCommand(mockCtx);
 
       expect(DrizzleDatabaseService.getVolunteerByHandle).toHaveBeenCalledWith('testuser');
@@ -123,7 +124,7 @@ describe('Bot Commands', () => {
   describe('Admin Commands', () => {
     it('should handle list volunteers command for admins', async () => {
       const { DrizzleDatabaseService } = await import('../src/db-drizzle');
-      
+
       // Mock admin status
       vi.mocked(DrizzleDatabaseService.isAdmin).mockResolvedValue(true);
       vi.mocked(DrizzleDatabaseService.getAllVolunteers).mockResolvedValue([
@@ -150,7 +151,7 @@ describe('Bot Commands', () => {
       ]);
 
       const { handleListVolunteersCommand } = await import('../src/commands/admins');
-      
+
       await handleListVolunteersCommand(mockCtx);
 
       expect(DrizzleDatabaseService.isAdmin).toHaveBeenCalledWith('testuser');
@@ -160,12 +161,12 @@ describe('Bot Commands', () => {
 
     it('should deny access to non-admin users', async () => {
       const { DrizzleDatabaseService } = await import('../src/db-drizzle');
-      
+
       // Mock non-admin status
       vi.mocked(DrizzleDatabaseService.isAdmin).mockResolvedValue(false);
 
       const { handleListVolunteersCommand } = await import('../src/commands/admins');
-      
+
       await handleListVolunteersCommand(mockCtx);
 
       expect(DrizzleDatabaseService.isAdmin).toHaveBeenCalledWith('testuser');
@@ -174,12 +175,49 @@ describe('Bot Commands', () => {
         expect.stringContaining('❌ This command is only available to administrators.')
       );
     });
+
+    describe('Assign Volunteer to Task Command /assign_task', () => {
+      it('should prevent volunteers from being assigned to a completed task', async () => {
+        const { DrizzleDatabaseService } = await import('../src/db-drizzle');
+        const { assignTaskCommand } = await import('../src/commands/volunteers');
+
+        mockCtx.match = '5 @testuser';
+
+        // Mock the volunteer being assigned
+        vi.mocked(DrizzleDatabaseService.getVolunteerByHandle).mockResolvedValue({
+          id: 1,
+          name: 'Test User',
+          telegram_handle: 'testuser',
+          status: 'active',
+          commitments: 3,
+          commit_count_start_date: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+        vi.mocked(DrizzleDatabaseService.getTask).mockResolvedValue({
+          id: 5,
+          event_id: 1,
+          title: 'Setup venue',
+          description: 'Setup tables and chairs',
+          status: 'complete',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+        await assignTaskCommand(mockCtx);
+
+        expect(DrizzleDatabaseService.getTask).toHaveBeenCalledWith(5);
+        expect(DrizzleDatabaseService.assignVolunteerToTask).not.toHaveBeenCalled();
+        expect(mockCtx.reply).toHaveBeenCalledWith('❌ Task is already complete!');
+      });
+    })
   });
 
   describe('Event Commands', () => {
     it('should handle list events command', async () => {
       const { DrizzleDatabaseService } = await import('../src/db-drizzle');
-      
+
       vi.mocked(DrizzleDatabaseService.getAllEvents).mockResolvedValue([
         {
           id: 1,
@@ -310,7 +348,7 @@ describe('Bot Commands', () => {
       });
 
       const { myTasksCommand } = await import('../src/commands/volunteers');
-      
+
       await myTasksCommand(mockCtx);
 
       expect(DrizzleDatabaseService.getVolunteerByHandle).toHaveBeenCalledWith('testuser');
@@ -318,7 +356,7 @@ describe('Bot Commands', () => {
       expect(DrizzleDatabaseService.getEvent).toHaveBeenCalledWith(1);
       expect(DrizzleDatabaseService.getEvent).toHaveBeenCalledWith(2);
       expect(mockCtx.reply).toHaveBeenCalled();
-      
+
       const replyCall = mockCtx.reply.mock.calls[0];
       const message = replyCall[0];
       expect(message).toContain('My Active Tasks');
@@ -357,11 +395,11 @@ describe('Bot Commands', () => {
       ]);
 
       const { myTasksCommand } = await import('../src/commands/volunteers');
-      
+
       await myTasksCommand(mockCtx);
 
       expect(mockCtx.reply).toHaveBeenCalled();
-      
+
       const replyCall = mockCtx.reply.mock.calls[0];
       const message = replyCall[0];
       expect(message).toContain('You currently have no active tasks assigned');
@@ -375,18 +413,54 @@ describe('Bot Commands', () => {
       vi.mocked(DrizzleDatabaseService.getVolunteerByHandle).mockResolvedValue(null);
 
       const { myTasksCommand } = await import('../src/commands/volunteers');
-      
+
       await myTasksCommand(mockCtx);
 
       expect(DrizzleDatabaseService.getVolunteerByHandle).toHaveBeenCalledWith('nonexistentuser');
       expect(mockCtx.reply).toHaveBeenCalled();
-      
+
       const replyCall = mockCtx.reply.mock.calls[0];
       const message = replyCall[0];
       expect(message).toContain("You're not registered as a volunteer yet!");
     });
   });
   describe('Volunteer Commands', () => {
+    describe('Commit Command /commit', () => {
+      it('should reject commit to a completed task', async () => {
+        const { DrizzleDatabaseService } = await import('../src/db-drizzle');
+        const { commitCommand } = await import('../src/commands/volunteers');
+
+        mockCtx.match = '5';
+
+        vi.mocked(DrizzleDatabaseService.getVolunteerByHandle).mockResolvedValue({
+          id: 1,
+          name: 'Test User',
+          telegram_handle: 'testuser',
+          status: 'active',
+          commitments: 3,
+          commit_count_start_date: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+        vi.mocked(DrizzleDatabaseService.getTask).mockResolvedValue({
+          id: 5,
+          event_id: 1,
+          title: 'Setup venue',
+          description: 'Setup tables and chairs',
+          status: 'complete',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+        await commitCommand(mockCtx);
+
+        expect(DrizzleDatabaseService.getTask).toHaveBeenCalledWith(5);
+        expect(DrizzleDatabaseService.assignVolunteerToTask).not.toHaveBeenCalled();
+        expect(mockCtx.reply).toHaveBeenCalledWith('❌ Task is already complete!');
+      });
+    });
+
     describe('Uncommit Command', () => {
       it('should reject uncommit if volunteer does not have username', async () => {
         const { uncommitCommand } = await import('../src/commands/volunteers');
