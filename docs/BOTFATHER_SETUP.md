@@ -22,11 +22,11 @@ This guide will walk you through creating a new Telegram bot using BotFather for
    Example: "Women Devs SG Volunteer Bot (Dev)"
    ```
 3. Next, BotFather will ask for a username. This must:
-   - End with "bot" (e.g., `womendvsg_volunteer_dev_bot`)
+   - End with "bot" (e.g., `womendevssg_volunteer_dev_bot`)
    - Be unique across all Telegram bots
    - Contain only letters, numbers, and underscores
    ```
-   Example: "womendvsg_volunteer_dev_bot"
+   Example: "womendevssg_volunteer_dev_bot"
    ```
 
 ### 3. Get Your Bot Token
@@ -40,12 +40,12 @@ After creating the bot, BotFather will provide you with a token that looks like 
 
 ### 4. Configure Your Local Environment
 
-1. Copy the `.env.example` file to `.env`:
+1. Copy the `.env.local.example` file to `.env.local`:
    ```bash
-   cp .env.example .env
+   cp .env.local.example .env.local
    ```
 
-2. Edit the `.env` file and add your bot token:
+2. Edit the `.env.local` file and add your bot token:
    ```env
    BOT_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
    NODE_ENV=development

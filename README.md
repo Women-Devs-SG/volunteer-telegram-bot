@@ -365,8 +365,9 @@ We welcome contributions! Here's how to get started:
 1. Fork the repository
 2. Create your development bot using [BotFather Setup Guide](./docs/BOTFATHER_SETUP.md)
 3. Set up local environment with `npm run setup:local`
-4. Make changes and test with `npm test`
-5. Test manually with your bot
+4. Make changes and test with `npm run test:local`
+5. Run `npm run dev:local` to run the app locally
+6. Make changes and ensure tests are passing
 6. Submit PR with detailed description
 
 ## 📖 Documentation
