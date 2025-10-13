@@ -11,6 +11,7 @@ import {
   myStatusCommand,
   myTasksCommand,
   commitCommand,
+  uncommitCommand,
   assignTaskCommand,
   updateTaskStatusCommand,
   volunteerStatusReportCommand,
@@ -165,6 +166,7 @@ bot.command('onboarding', onboardCommand);
 bot.command('my_status', myStatusCommand);
 bot.command('my_tasks', myTasksCommand);
 bot.command('commit', commitCommand);
+bot.command('uncommit', uncommitCommand);
 
 // Admin authentication
 bot.command('admin_login', adminLoginCommand);
