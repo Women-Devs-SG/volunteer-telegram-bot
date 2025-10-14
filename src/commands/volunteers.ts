@@ -231,6 +231,12 @@ export const commitCommand = async (ctx: CommandContext<Context>) => {
     return;
   }
 
+  // Check if task is already complete
+  if (task.status === 'complete') {
+    await ctx.reply('❌ Task is already complete!');
+    return;
+  }
+
   // Check if volunteer can commit to this task
   const { canCommit, reason } = await canVolunteerCommit(volunteer.id, taskId);
   
@@ -370,6 +376,12 @@ export const assignTaskCommand = async (ctx: CommandContext<Context>) => {
   const task = await DrizzleDatabaseService.getTask(taskId);
   if (!task) {
     await ctx.reply('❌ Task not found.');
+    return;
+  }
+
+  // Check if task is already complete
+  if (task.status === 'complete') {
+    await ctx.reply('❌ Task is already complete!');
     return;
   }
 
