@@ -6,7 +6,8 @@ import {
   formatEventDetails,
   TBD_DATE_ISO,
   isTbdDateIso,
-  formatHumanDate
+  formatHumanDate,
+  sortEventsByDate
 } from '../utils';
 
 import { getRequiredTasks, getAllTaskTemplates, formatTaskTemplatesForSelection } from '../utils/task-templates';
@@ -676,9 +677,9 @@ export const handleRemoveEventConfirmation = async (ctx: Context) => {
 export const listEventsCommand = async (ctx: CommandContext<Context>) => {
   const allEvents = await DrizzleDatabaseService.getPlanningPublishedEvents();
   // Sort chronologically by event date (TBD sentinel will naturally go last)
-  const events = [...allEvents].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const sortedEvents = sortEventsByDate(allEvents);
 
-  if (!events || events.length === 0) {
+  if (!sortedEvents || sortedEvents.length === 0) {
     await ctx.reply('📅 No planning & published events found.');
     return;
   }
@@ -699,7 +700,7 @@ export const listEventsCommand = async (ctx: CommandContext<Context>) => {
     others: '📌',
   };
   
-  for (const event of events) {
+  for (const event of sortedEvents) {
     const tasks = await DrizzleDatabaseService.getEventTasks(event.id);
     const emoji = formatEmoji[event.format] || '📌';
     const dateText = isTbdDateIso(event.date) ? 'TBD' : formatHumanDate(event.date);
