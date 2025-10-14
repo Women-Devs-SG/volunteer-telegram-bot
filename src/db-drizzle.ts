@@ -1,4 +1,4 @@
-import { eq, and } from 'drizzle-orm';
+import { eq, and, ne } from 'drizzle-orm';
 import { db } from './drizzle';
 import { volunteers, events, tasks, taskAssignments, admins } from './schema';
 import type { NewVolunteer, NewEvent, NewTask, NewTaskAssignment } from './schema';
@@ -350,10 +350,14 @@ export class DrizzleDatabaseService {
     }
   }
 
-  static async getAllEvents(): Promise<Event[]> {
+  static async getAllUpcomingEvents(): Promise<Event[]> {
     try {
       const result = await db.select()
         .from(events)
+        .where(and(
+          ne(events.status, 'completed'),
+          ne(events.status, 'cancelled')
+        ))
         .orderBy(events.created_at);
 
       return result.map((event: typeof events.$inferSelect) => ({
