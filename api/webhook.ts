@@ -106,6 +106,7 @@ Welcome! I help manage volunteer onboarding, event planning, and admin tasks.
 
 **For Admins:**
 • \`/admin_login <secret>\` - Authenticate as admin
+• \`/audit_logs [since] [command] [@handle] [limit]\` - View latest admin actions with optional filters
 • \`/list_volunteers\` - View all volunteers
 • \`/add_volunteer\` - Add new volunteer (interactive)
 • \`/remove_volunteer @handle\` - Remove volunteer
