@@ -316,3 +316,8 @@ export const filterFutureEvents = (events: Event[]): Event[] => {
     return eventDate >= today;
   });
 };
+
+// Sort chronologically by event date
+export const sortEventsByDate = (events: Event[]) => {
+  return [...events].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+};

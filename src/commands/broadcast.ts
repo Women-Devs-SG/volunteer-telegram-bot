@@ -1,6 +1,6 @@
 import { Context, CommandContext } from 'grammy';
 import { DrizzleDatabaseService } from '../db-drizzle';
-import { formatEventDetails, formatHumanDate } from '../utils';
+import { formatEventDetails, formatHumanDate, sortEventsByDate } from '../utils';
 
 // Escape special characters for Telegram HTML parse_mode
 const escapeHtml = (text: string): string => {
@@ -230,16 +230,17 @@ export const broadcastEventsCommand = async (ctx: CommandContext<Context>) => {
   }
   
   try {
-    const events = await DrizzleDatabaseService.getAllUpcomingEvents();
-    
-    if (events.length === 0) {
+    const allEvents = await DrizzleDatabaseService.getAllUpcomingEvents();
+    const sortedEvents = sortEventsByDate(allEvents);
+
+    if (sortedEvents.length === 0) {
       await ctx.reply('❌ No events to broadcast.');
       return;
     }
     
     let broadcastMessage = '📅 *Upcoming Events*\n\n';
     
-    events.forEach(event => {
+    sortedEvents.forEach(event => {
       const eventDate = new Date(event.date).toLocaleDateString();
       const escapedTitle = escapeMarkdown(event.title);
       const escapedVenue = escapeMarkdown(event.venue || 'TBD');
@@ -247,7 +248,7 @@ export const broadcastEventsCommand = async (ctx: CommandContext<Context>) => {
       
       broadcastMessage += `*${escapedTitle}*\n`;
       broadcastMessage += `📍 ${escapedVenue}\n`;
-      broadcastMessage += `📅 ${eventDate}\n`;
+      broadcastMessage += `Date: ${formatHumanDate(eventDate)}\n`;
       broadcastMessage += `🎯 ${escapedFormat}\n`;
       if (event.details) {
         const escapedDetails = escapeMarkdown(event.details);
