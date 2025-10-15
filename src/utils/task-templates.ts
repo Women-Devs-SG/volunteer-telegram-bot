@@ -60,7 +60,7 @@ export const TASKS: TaskTemplate[] = [
 
 // Map of required tasks by event format. Use task TITLES from TASKS above.
 const REQUIRED_BY_FORMAT: Record<Event['format'] | 'default', string[]> = {
-  default: ['Content Creation', 'Pre-event Marketing', 'Post-event Marketing', 'Introduce WDS', 'Internal Speaker'],
+  default: ['Content Creation', 'Pre-event Marketing', 'Post-event Marketing', 'Introduce WDS'],
   panel: ['Content Creation', 'Pre-event Marketing', 'Post-event Marketing', 'Moderation', 'Date Confirmation', 'Speaker Confirmation', 'Introduce WDS', 'Internal Speaker'],
   workshop: ['Content Creation', 'Pre-event Marketing', 'Post-event Marketing', 'Facilitation', 'Date Confirmation', 'Introduce WDS', 'Internal Speaker'],
   conference: ['Content Creation', 'Pre-event Marketing', 'Post-event Marketing', 'Speaker Coordination', 'Date Confirmation', 'Introduce WDS'],
