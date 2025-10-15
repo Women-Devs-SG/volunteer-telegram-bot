@@ -37,6 +37,7 @@ export const TASKS: TaskTemplate[] = [
   { title: 'Facilitation', description: 'Facilitate the workshop activities or discussion', category: 'Event Management' },
   { title: 'Topic Preparation', description: 'Prepare discussion topics and questions', category: 'Event Management' },
   { title: 'Technical Setup', description: 'Handle technical equipment and setup', category: 'Event Management' },
+  { title: 'Internal Speaker', description: 'Internal WDS member speaking slot for this event', category: 'Event Management' },
 
   // Coding Project
   { title: 'Code Repo Maintainer', description: 'Lead maintenance of the project repository', category: 'Coding Project' },
@@ -60,10 +61,10 @@ export const TASKS: TaskTemplate[] = [
 // Map of required tasks by event format. Use task TITLES from TASKS above.
 const REQUIRED_BY_FORMAT: Record<Event['format'] | 'default', string[]> = {
   default: ['Content Creation', 'Pre-event Marketing', 'Post-event Marketing', 'Introduce WDS'],
-  panel: ['Content Creation', 'Pre-event Marketing', 'Post-event Marketing', 'Moderation', 'Date Confirmation', 'Speaker Confirmation', 'Introduce WDS'],
-  workshop: ['Content Creation', 'Pre-event Marketing', 'Post-event Marketing', 'Facilitation', 'Date Confirmation', 'Introduce WDS'],
+  panel: ['Content Creation', 'Pre-event Marketing', 'Post-event Marketing', 'Moderation', 'Date Confirmation', 'Speaker Confirmation', 'Introduce WDS', 'Internal Speaker'],
+  workshop: ['Content Creation', 'Pre-event Marketing', 'Post-event Marketing', 'Facilitation', 'Date Confirmation', 'Introduce WDS', 'Internal Speaker'],
   conference: ['Content Creation', 'Pre-event Marketing', 'Post-event Marketing', 'Speaker Coordination', 'Date Confirmation', 'Introduce WDS'],
-  talk: ['Content Creation', 'Pre-event Marketing', 'Post-event Marketing', 'Speaker Coordination', 'Date Confirmation', 'Introduce WDS'],
+  talk: ['Content Creation', 'Pre-event Marketing', 'Post-event Marketing', 'Speaker Coordination', 'Date Confirmation', 'Introduce WDS', 'Internal Speaker'],
   external_speaker: ['Content Creation', 'Pre-event Marketing', 'Post-event Marketing', 'Speaker Coordination', 'Date Confirmation'],
   others: ['Content Creation', 'Pre-event Marketing', 'Post-event Marketing'],
   meeting: ['Date Confirmation', 'Venue Coordination', 'Post-event Marketing'],
