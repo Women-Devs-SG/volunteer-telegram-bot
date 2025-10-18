@@ -275,7 +275,7 @@ const setupBotCommands = async () => {
       { command: 'my_status', description: 'Check your volunteer status' },
       { command: 'my_tasks', description: 'View your assigned tasks' },
       { command: 'commit', description: 'Sign up for event tasks' },
-      { command: 'uncommit', description: 'Remove yourself from event tasks' },
+      { command: 'uncommit', description: 'Remove yourself from a task' },
       { command: 'admin_login', description: 'Authenticate as admin' },
       { command: 'list_volunteers', description: 'View all volunteers (admin)' },
       { command: 'add_volunteer', description: 'Add new volunteer (interactive, admin)' },
