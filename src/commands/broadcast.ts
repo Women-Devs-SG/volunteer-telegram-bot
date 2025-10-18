@@ -136,7 +136,7 @@ export const broadcastCommand = async (ctx: CommandContext<Context>) => {
   const message = `📢 *Broadcast Menu*\n\n` +
     `Choose what to broadcast:\n\n` +
     `1️⃣ \`/broadcast_volunteers\` \\- Current volunteer status list\n` +
-    `2️⃣ \`/broadcast_events\` \\- List of upcoming events\n` +
+    `2️⃣ \`/broadcast_events\` \\- List of planning & published events\n` +
     `3️⃣ \`/broadcast_tasks\` \\- Available tasks needing volunteers\n` +
     `4️⃣ \`/broadcast_custom <message>\` \\- Send custom message\n\n` +
     `*Target Group:* ${escapeMarkdown(groupInfo)}`;
@@ -220,7 +220,7 @@ export const broadcastVolunteersCommand = async (ctx: CommandContext<Context>) =
   }
 };
 
-// /broadcast_events command - broadcast upcoming events
+// /broadcast_events command - broadcast planning & published events
 export const broadcastEventsCommand = async (ctx: CommandContext<Context>) => {
   const { groupId } = getGroupInfo('VOLUNTEER_GROUP_ID');
   
@@ -230,14 +230,14 @@ export const broadcastEventsCommand = async (ctx: CommandContext<Context>) => {
   }
   
   try {
-    const events = await DrizzleDatabaseService.getAllUpcomingEvents();
+    const events = await DrizzleDatabaseService.getPlanningPublishedEvents();
     
     if (events.length === 0) {
       await ctx.reply('❌ No events to broadcast.');
       return;
     }
     
-    let broadcastMessage = '📅 *Upcoming Events*\n\n';
+    let broadcastMessage = '📅 *Planning & Published Events*\n\n';
     
     events.forEach(event => {
       const eventDate = new Date(event.date).toLocaleDateString();
@@ -277,7 +277,7 @@ export const broadcastTasksCommand = async (ctx: CommandContext<Context>) => {
   
   try {
     // Get all incomplete events
-    const events = await DrizzleDatabaseService.getAllUpcomingEvents();
+    const events = await DrizzleDatabaseService.getPlanningPublishedEvents();
 
     if (events.length === 0) {
       await ctx.reply('❌ No events with tasks to broadcast.');
