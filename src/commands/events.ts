@@ -672,18 +672,18 @@ export const handleRemoveEventConfirmation = async (ctx: Context) => {
   await ctx.reply('Please reply with YES to confirm, or NO to cancel.');
 };
 
-// /list_events command - list upcoming events with simplified format
+// /list_events command - list planning & published events with simplified format
 export const listEventsCommand = async (ctx: CommandContext<Context>) => {
-  const allEvents = await DrizzleDatabaseService.getAllUpcomingEvents();
+  const allEvents = await DrizzleDatabaseService.getPlanningPublishedEvents();
   // Sort chronologically by event date (TBD sentinel will naturally go last)
   const events = [...allEvents].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   if (!events || events.length === 0) {
-    await ctx.reply('📅 No upcoming events found.');
+    await ctx.reply('📅 No planning & published events found.');
     return;
   }
 
-  let message = '📅 <b>Upcoming Events:</b>\n\n';
+  let message = '📅 <b>Planning & Published Events:</b>\n\n';
   const formatEmoji: Record<string, string> = {
     talk: '🎤',
     workshop: '🛠️',

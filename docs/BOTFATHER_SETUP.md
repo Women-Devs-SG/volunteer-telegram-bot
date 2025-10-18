@@ -59,7 +59,7 @@ You can configure the bot's command menu by sending `/setcommands` to BotFather:
 start - Register as a volunteer or get your status
 help - Show available commands
 profile - View your volunteer profile
-events - List upcoming events
+events - List planning & published events
 tasks - View your assigned tasks
 ```
 

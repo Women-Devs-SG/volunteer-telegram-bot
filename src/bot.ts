@@ -110,7 +110,7 @@ Welcome! I help manage volunteer onboarding, event planning, and admin tasks.
 • \`/my_tasks\` - View your assigned tasks
 • \`/commit <task_id>\` - Sign up for event tasks
 • \`/uncommit <task_id>\` - Remove yourself from a task
-• \`/list_events\` - View upcoming events
+• \`/list_events\` - View planning & published events
 • \`/event_details <event_id>\` - View detailed event information
 • \`/create_event\` - Create a new event (interactive)
 • \`/edit_event <event_id>\` - Edit your own event (admins can edit any)`;
@@ -139,7 +139,7 @@ Welcome! I help manage volunteer onboarding, event planning, and admin tasks.
 • \`/volunteer_status_report\` - View current volunteer status
 • \`/broadcast\` - Show broadcast menu for testing
 • \`/broadcast_volunteers\` - Broadcast volunteer status list
-• \`/broadcast_events\` - Broadcast upcoming events
+• \`/broadcast_events\` - Broadcast planning & published events
 • \`/broadcast_event_details <event_id>\` - Broadcast a specific event's details
 • \`/broadcast_tasks\` - Broadcast available tasks
 • \`/broadcast_custom <message>\` - Send custom broadcast message
@@ -289,12 +289,12 @@ const setupBotCommands = async () => {
       { command: 'set_commit_count', description: 'Overwrite a volunteer\'s commit count (admin)' },
       { command: 'set_status', description: 'Update a volunteer\'s status (admin)' },
       { command: 'volunteer_status_report', description: 'View current volunteer status (admin)' },
-      { command: 'list_events', description: 'View upcoming events with tasks' },
+      { command: 'list_events', description: 'View planning & published events with tasks' },
       { command: 'event_details', description: 'View detailed event information' },
       { command: 'remove_event', description: 'Remove an event (admin)' },
       { command: 'broadcast', description: 'Show broadcast menu (admin)' },
       { command: 'broadcast_volunteers', description: 'Broadcast volunteer status (admin)' },
-      { command: 'broadcast_events', description: 'Broadcast upcoming events (admin)' },
+      { command: 'broadcast_events', description: 'Broadcast planning & published events (admin)' },
       { command: 'broadcast_event_details', description: 'Broadcast a specific event' },
       { command: 'broadcast_tasks', description: 'Broadcast available tasks (admin)' },
       { command: 'broadcast_custom', description: 'Send custom broadcast message (admin)' },

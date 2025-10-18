@@ -156,7 +156,7 @@ describe('Database Service', () => {
       await DrizzleDatabaseService.updateEventStatus(event4!.id, 'cancelled');
       
       // Get all incomplete events
-      const incompleteEvents = await DrizzleDatabaseService.getAllUpcomingEvents();
+      const incompleteEvents = await DrizzleDatabaseService.getPlanningPublishedEvents();
       
       // Check that only non-completed events are returned
       expect(incompleteEvents).toHaveLength(2);

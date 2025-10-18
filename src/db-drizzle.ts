@@ -350,7 +350,7 @@ export class DrizzleDatabaseService {
     }
   }
 
-  static async getAllUpcomingEvents(): Promise<Event[]> {
+  static async getPlanningPublishedEvents(): Promise<Event[]> {
     try {
       const result = await db.select()
         .from(events)

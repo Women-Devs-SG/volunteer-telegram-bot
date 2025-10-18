@@ -249,7 +249,7 @@ test: add tests for event creation
 - `/start` - Register as volunteer or show status
 - `/help` - Show available commands
 - `/profile` - View volunteer profile
-- `/events` - List upcoming events
+- `/events` - List planning & published events
 - `/tasks` - View assigned tasks
 
 ### Admin Commands
