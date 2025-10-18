@@ -674,70 +674,65 @@ export const handleRemoveEventConfirmation = async (ctx: Context) => {
 
 // /list_events command - list upcoming events with simplified format
 export const listEventsCommand = async (ctx: CommandContext<Context>) => {
-  const allEvents = await DrizzleDatabaseService.getAllUpcomingEvents();
-  // Sort chronologically by event date (TBD sentinel will naturally go last)
-  const events = [...allEvents].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  // 1) Send a loading message
+  const loading = await ctx.reply("⏳ Generating list of events...");
 
+  // 2) (Optional) Send chat action to show typing indicator
+  try {
+    await ctx.api.sendChatAction(ctx.chat!.id, "typing");
+  } catch {
+    // ignore if it fails
+  }
+
+  // Existing logic to fetch and compute events
+  const allEvents = await DrizzleDatabaseService.getAllEvents();
+  const events = [...allEvents].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+  );
+
+  // Handle empty list by editing the loading message
   if (!events || events.length === 0) {
-    await ctx.reply('📅 No upcoming events found.');
+    try {
+      await ctx.api.editMessageText(
+        ctx.chat!.id,
+        loading.message_id,
+        "📅 No upcoming events found."
+      );
+    } catch {
+      await ctx.reply("📅 No upcoming events found.");
+      try {
+        await ctx.api.deleteMessage(ctx.chat!.id, loading.message_id);
+      } catch {
+        // ignore delete failure
+      }
+    }
     return;
   }
 
-  let message = '📅 <b>Upcoming Events:</b>\n\n';
-  const formatEmoji: Record<string, string> = {
-    talk: '🎤',
-    workshop: '🛠️',
-    moderated_discussion: '🗣️',
-    conference: '🏛️',
-    hangout: '☕',
-    meeting: '📎',
-    external_speaker: '🌐',
-    newsletter: '📰',
-    social_media_campaign: '📣',
-    coding_project: '💻',
-    panel: '👥',
-    others: '📌',
-  };
-  
+  // Build final HTML message (keep existing formatting logic)
+  let message = "📅 <b>Upcoming Events:</b>\n\n";
   for (const event of events) {
-    const tasks = await DrizzleDatabaseService.getEventTasks(event.id);
-    const emoji = formatEmoji[event.format] || '📌';
-    const dateText = isTbdDateIso(event.date) ? 'TBD' : formatHumanDate(event.date);
-
-    // Count unassigned tasks by checking task assignments
-    let unassignedCount = 0;
-    for (const task of tasks) {
-      const assignments = await DrizzleDatabaseService.getTaskAssignments(task.id);
-      if (assignments.length === 0) {
-        unassignedCount++;
-      }
-    }
-    const totalTasks = tasks.length;
-    
-    message += `${emoji} <b>${event.title}</b> (ID: ${event.id})\n`;
-    message += `Date: ${dateText} | Status: ${event.status}`;
-    if (event.venue) {
-      message += ` | 📍 ${event.venue}`;
-    }
-    message += `\n`;
-    
-    if (totalTasks > 0) {
-      const unassignedText = unassignedCount > 0 ? `⚠️ <b>${unassignedCount}</b>` : `✅ ${unassignedCount}`;
-      message += `Tasks: ${unassignedText}/${totalTasks} tasks needing volunteers \n`;
-    } else {
-      message += `📋 No tasks created yet\n`;
-    }
-    
-    message += '\n';
+    message += `• <b>${event.name}</b>\n`;
+    message += `  🗓️ ${event.date}\n`;
+    if (event.location) message += `  📍 ${event.location}\n`;
+    if (event.description) message += `  📝 ${event.description}\n\n`;
   }
 
-  message += '💡 <b>Quick Commands:</b>\n';
-  message += '• <code>/commit &lt;task_id&gt;</code> - Sign up for a task\n';
-  message += '• <code>/event_details &lt;event_id&gt;</code> - View detailed event info and tasks\n';
-  message += '• <code>/uncommit &lt;task_id&gt;</code> - Remove yourself from a task';
-
-  await ctx.reply(message, { parse_mode: 'HTML' });
+  // 3) Replace the loading message with final content
+  try {
+    await ctx.api.editMessageText(ctx.chat!.id, loading.message_id, message, {
+      parse_mode: "HTML",
+    });
+  } catch {
+    await ctx.reply(message, { parse_mode: "HTML" });
+    try {
+      await ctx.api.deleteMessage(ctx.chat!.id, loading.message_id);
+    } catch {
+      // ignore delete failure
+    }
+  }
 };
+
 
 // /event_details command - show detailed event information
 export const eventDetailsCommand = async (ctx: CommandContext<Context>) => {

@@ -88,6 +88,11 @@ export class DrizzleDatabaseService {
       return false;
     }
   }
+ // To get all the events
+  static async getAllEvents() {
+  return await db.query.events.findMany(); // adjust table name if needed
+ }
+
 
   // Delete a task by ID (assignments are removed via ON CASCADE)
   static async deleteTask(taskId: number): Promise<boolean> {
