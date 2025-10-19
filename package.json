@@ -8,8 +8,8 @@
     "start": "node dist/bot.js",
     "watch": "tsc --watch",
     "type-check": "tsc -p tsconfig.json --noEmit",
-    "lint": "tsc --noEmit",
-    "precommit": "npm run lint && npm run test",
+    "lint": "tsc --noEmit && npx eslint --quiet --fix",
+    "precommit": "npm run lint && npm run test:local",
     "_comment1": "=== LOCAL DEVELOPMENT ===",
     "test:local:coverage": "dotenv -e .env.local -- vitest run --coverage",
     "dev:local": "dotenv -e .env.local -- ts-node src/bot.ts",
@@ -44,7 +44,8 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "db:generate": "drizzle-kit generate",
-    "db:introspect": "ts-node scripts/introspect-db.ts"
+    "db:introspect": "ts-node scripts/introspect-db.ts",
+    "prepare": "husky"
   },
   "keywords": [
     "telegram",
@@ -65,15 +66,22 @@
     "postgres": "^3.4.7"
   },
   "devDependencies": {
+    "@eslint/compat": "^1.4.0",
+    "@eslint/js": "^9.38.0",
     "@types/jest": "^29.5.0",
     "@types/node": "^20.0.0",
     "@types/supertest": "^6.0.0",
     "@vitest/coverage-v8": "^3.2.4",
     "dotenv-cli": "^7.4.2",
     "drizzle-kit": "^0.31.4",
+    "eslint": "^9.38.0",
+    "globals": "^16.4.0",
+    "husky": "^9.1.7",
+    "jiti": "^2.6.1",
     "supertest": "^7.0.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.0.0",
+    "typescript-eslint": "^8.46.1",
     "vitest": "^3.2.4"
   }
 }
