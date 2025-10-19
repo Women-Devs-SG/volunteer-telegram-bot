@@ -190,7 +190,7 @@ npm run db:introspect      # Generate current schema
 - `/volunteer_status_report` - View current volunteer status
 - `/broadcast` - Show broadcast menu for testing
 - `/broadcast_volunteers` - Broadcast volunteer status list to group
-- `/broadcast_events` - Broadcast upcoming events to group
+- `/broadcast_events` - Broadcast planning & published events to group
 - `/broadcast_tasks` - Broadcast available events needing volunteers to group
 - `/broadcast_custom <message>` - Send custom broadcast message
 - `/finalize_event <event_id>` - Publish event
