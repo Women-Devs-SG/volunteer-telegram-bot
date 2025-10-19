@@ -47,6 +47,9 @@
     "db:introspect": "ts-node scripts/introspect-db.ts",
     "prepare": "husky"
   },
+  "lint-staged": {
+    "*.{js,ts, mts}": "npm run lint"
+  },
   "keywords": [
     "telegram",
     "bot",
@@ -78,6 +81,7 @@
     "globals": "^16.4.0",
     "husky": "^9.1.7",
     "jiti": "^2.6.1",
+    "lint-staged": "^16.2.4",
     "supertest": "^7.0.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.0.0",
