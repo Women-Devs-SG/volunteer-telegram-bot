@@ -48,7 +48,7 @@
     "prepare": "husky"
   },
   "lint-staged": {
-    "*.{js,ts, mts}": "npm run lint"
+    "*.{js,ts,mts}": "npm run lint"
   },
   "keywords": [
     "telegram",
