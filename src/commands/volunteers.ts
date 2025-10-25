@@ -72,7 +72,7 @@ export const onboardCommand = async (ctx: CommandContext<Context>) => {
   const page = pages[idx]!;
   const header = `<b>Onboarding</b> — ${page.title}`;
   const message = `${header}\n\n${page.content}`;
-  await ctx.reply(message, { parse_mode: 'HTML', reply_markup: kb });
+  await ctx.reply(message, { parse_mode: 'HTML', reply_markup: kb, link_preview_options: { is_disabled: true } });
 };
 
 export const handleOnboardCallback = async (ctx: Context) => {
@@ -95,12 +95,12 @@ export const handleOnboardCallback = async (ctx: Context) => {
   const header = `<b>Onboarding</b> — ${page.title}`;
   const message = `${header}\n\n${page.content}`;
   try {
-    await ctx.editMessageText(message, { parse_mode: 'HTML', reply_markup: kb });
+    await ctx.editMessageText(message, { parse_mode: 'HTML', reply_markup: kb, link_preview_options: { is_disabled: true } });
     await ctx.answerCallbackQuery();
   } catch (e) {
     // If message can't be edited (e.g., too old), send a new one
     await ctx.answerCallbackQuery();
-    await ctx.reply(message, { parse_mode: 'HTML', reply_markup: kb });
+    await ctx.reply(message, { parse_mode: 'HTML', reply_markup: kb, link_preview_options: { is_disabled: true } });
   }
 };
 
