@@ -66,6 +66,8 @@ import {
   removeEventCommand,
   cancelCommand
 } from './commands/events';
+import { loggedAdminCommand } from './middleware/loggedAdminCommand';
+import { auditLogsCommand } from './commands/adminAuditLogs';
 
 // Removed monthly processing utilities and scheduler (no auto scheduling)
 
@@ -186,34 +188,36 @@ bot.command('my_tasks', myTasksCommand);
 bot.command('commit', commitCommand);
 bot.command('uncommit', uncommitCommand);
 
+
 // Admin authentication
 bot.command('admin_login', adminLoginCommand);
 
-// Admin commands (with authentication middleware)
-bot.command('list_volunteers', requireAdmin, listVolunteersCommand);
-bot.command('add_volunteer', requireAdmin, addVolunteerCommand);
-bot.command('remove_volunteer', requireAdmin, removeVolunteerCommand);
-bot.command('assign_task', requireAdmin, assignTaskCommand);
-bot.command('update_task_status', requireAdmin, updateTaskStatusCommand);
-bot.command('remove_assignment', requireAdmin, removeAssignmentCommand);
-bot.command('remove_admin', requireAdmin, removeAdminCommand);
-bot.command('set_commit_count', requireAdmin, setCommitCountCommand);
-bot.command('set_status', requireAdmin, setStatusCommand);
-bot.command('reset_quarter', requireAdmin, resetQuarterCommand);
-bot.command('volunteer_status_report', requireAdmin, volunteerStatusReportCommand);
-bot.command('create_event', createEventCommand);
-bot.command('edit_event', editEventCommand);
-bot.command('list_events', listEventsCommand);
-bot.command('event_details', eventDetailsCommand);
-bot.command('remove_event', requireAdmin, removeEventCommand);
+// Admin commands (with authentication middleware and logging)
+bot.command('audit_logs', requireAdmin, loggedAdminCommand('audit_logs', auditLogsCommand));
+bot.command('list_volunteers', requireAdmin, loggedAdminCommand('list_volunteers', listVolunteersCommand));
+bot.command('add_volunteer', requireAdmin, loggedAdminCommand('add_volunteer', addVolunteerCommand));
+bot.command('remove_volunteer', requireAdmin, loggedAdminCommand('remove_volunteer', removeVolunteerCommand));
+bot.command('assign_task', requireAdmin, loggedAdminCommand('assign_task', assignTaskCommand));
+bot.command('update_task_status', requireAdmin, loggedAdminCommand('update_task_status', updateTaskStatusCommand));
+bot.command('remove_assignment', requireAdmin, loggedAdminCommand('remove_assignment', removeAssignmentCommand));
+bot.command('remove_admin', requireAdmin, loggedAdminCommand('remove_admin', removeAdminCommand));
+bot.command('set_commit_count', requireAdmin, loggedAdminCommand('set_commit_count', setCommitCountCommand));
+bot.command('set_status', requireAdmin, loggedAdminCommand('set_status', setStatusCommand));
+bot.command('reset_quarter', requireAdmin, loggedAdminCommand('reset_quarter', resetQuarterCommand));
+bot.command('volunteer_status_report', requireAdmin, loggedAdminCommand('volunteer_status_report', volunteerStatusReportCommand));
+bot.command('create_event', loggedAdminCommand('create_event', createEventCommand));
+bot.command('edit_event', loggedAdminCommand('edit_event', editEventCommand));
+bot.command('list_events', loggedAdminCommand('list_events', listEventsCommand));
+bot.command('event_details', loggedAdminCommand('event_details', eventDetailsCommand));
+bot.command('remove_event', requireAdmin, loggedAdminCommand('remove_event', removeEventCommand));
 
 // Broadcast commands (admin only)
-bot.command('broadcast', requireAdmin, broadcastCommand);
-bot.command('broadcast_volunteers', requireAdmin, broadcastVolunteersCommand);
-bot.command('broadcast_events', requireAdmin, broadcastEventsCommand);
-bot.command('broadcast_event_details', broadcastEventDetailsCommand);
-bot.command('broadcast_tasks', requireAdmin, broadcastTasksCommand);
-bot.command('broadcast_custom', requireAdmin, broadcastCustomCommand);
+bot.command('broadcast', requireAdmin, loggedAdminCommand('broadcast', broadcastCommand));
+bot.command('broadcast_volunteers', requireAdmin, loggedAdminCommand('broadcast_volunteers', broadcastVolunteersCommand));
+bot.command('broadcast_events', requireAdmin, loggedAdminCommand('broadcast_events', broadcastEventsCommand));
+bot.command('broadcast_event_details', loggedAdminCommand('broadcast_event_details', broadcastEventDetailsCommand));
+bot.command('broadcast_tasks', requireAdmin, loggedAdminCommand('broadcast_tasks', broadcastTasksCommand));
+bot.command('broadcast_custom', requireAdmin, loggedAdminCommand('broadcast_custom', broadcastCustomCommand));
 
 // Utility commands
 bot.command('cancel', cancelCommand);
