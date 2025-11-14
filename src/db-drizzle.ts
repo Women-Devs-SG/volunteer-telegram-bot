@@ -20,8 +20,8 @@ interface Event {
   id: number;
   title: string;
   date: string;
-  format: 'moderated_discussion' | 'conference' | 'talk' | 'hangout' | 'meeting' | 
-          'external_speaker' | 'newsletter' | 'social_media_campaign' | 'coding_project' | 'workshop' | 'panel' | 'others';
+  format: ('conference' | 'talk' | 'hangout' | 'meeting' | 'external_speaker' |
+    'newsletter' | 'social_media_campaign' | 'coding_project' | 'workshop' | 'panel' | 'others');
   status: 'planning' | 'published' | 'completed' | 'cancelled';
   venue?: string | null;
   details?: string;
@@ -61,9 +61,9 @@ export class DrizzleDatabaseService {
         .from(volunteers)
         .where(eq(volunteers.telegram_handle, telegramHandle))
         .limit(1);
-      
+
       if (!result[0]) return null;
-      
+
       const volunteer = result[0];
       return {
         ...volunteer,
@@ -166,7 +166,7 @@ export class DrizzleDatabaseService {
         .returning();
 
       if (!result[0]) return null;
-      
+
       const volunteer = result[0];
       return {
         ...volunteer,
@@ -197,7 +197,7 @@ export class DrizzleDatabaseService {
   static async setVolunteerCommitments(id: number, commitments: number): Promise<boolean> {
     try {
       await db.update(volunteers)
-        .set({ 
+        .set({
           commitments,
           updated_at: new Date()
         })
@@ -271,7 +271,7 @@ export class DrizzleDatabaseService {
         .returning();
 
       if (!result[0]) return null;
-      
+
       const event = result[0];
       return {
         ...event,
@@ -294,7 +294,7 @@ export class DrizzleDatabaseService {
         .limit(1);
 
       if (!result[0]) return null;
-      
+
       const event = result[0];
       return {
         ...event,
@@ -390,7 +390,7 @@ export class DrizzleDatabaseService {
         .returning();
 
       if (!result[0]) return null;
-      
+
       const task = result[0];
       return {
         ...task,
@@ -489,7 +489,7 @@ export class DrizzleDatabaseService {
       // Fetch current status to detect transitions to complete
       const existing = await this.getTask(taskId);
       await db.update(tasks)
-        .set({ 
+        .set({
           status,
           updated_at: new Date()
         })
@@ -673,11 +673,11 @@ export class DrizzleDatabaseService {
   static async resetMonthlyCommitments(): Promise<boolean> {
     try {
       await db.update(volunteers)
-        .set({ 
+        .set({
           commitments: 0,
           updated_at: new Date()
         });
-      
+
       return true;
     } catch (error) {
       console.error('Error resetting monthly commitments:', error);
@@ -690,39 +690,39 @@ export class DrizzleDatabaseService {
       // Get all volunteers with their current status and commitments
       const allVolunteers = await db.select()
         .from(volunteers);
-      
+
       let updatedCount = 0;
       let inactiveCount = 0;
-      
+
       for (const volunteer of allVolunteers) {
         const commitments = volunteer.commitments || 0;
         const currentStatus = volunteer.status;
-        
+
         // Check if volunteer should be marked inactive
         if (commitments < 3 && (currentStatus === 'probation' || currentStatus === 'active')) {
           await db.update(volunteers)
-            .set({ 
+            .set({
               status: 'inactive',
               updated_at: new Date()
             })
             .where(eq(volunteers.id, volunteer.id));
-          
+
           updatedCount++;
           inactiveCount++;
         }
         // Check if probation volunteer should be promoted to active
         else if (commitments >= 3 && currentStatus === 'probation') {
           await db.update(volunteers)
-            .set({ 
+            .set({
               status: 'active',
               updated_at: new Date()
             })
             .where(eq(volunteers.id, volunteer.id));
-          
+
           updatedCount++;
         }
       }
-      
+
       return { updated: updatedCount, inactive: inactiveCount };
     } catch (error) {
       console.error('Error updating volunteer status based on commitments:', error);
@@ -739,7 +739,7 @@ export class DrizzleDatabaseService {
   }> {
     try {
       const allVolunteers = await this.getAllVolunteers();
-      
+
       const report = {
         probation: allVolunteers.filter(v => v.status === 'probation'),
         active: allVolunteers.filter(v => v.status === 'active'),
@@ -747,7 +747,7 @@ export class DrizzleDatabaseService {
         inactive: allVolunteers.filter(v => v.status === 'inactive'),
         total: allVolunteers.length
       };
-      
+
       return report;
     } catch (error) {
       console.error('Error generating volunteer status report:', error);

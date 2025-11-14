@@ -425,7 +425,7 @@ export const handleEventWizard = async (ctx: Context) => {
       const format = text.toLowerCase().replace(/\s+/g, '_') as Event['format'];
       const validFormats = ['workshop', 'panel', 'conference', 'talk', 'hangout', 'meeting',
         'external_speaker', 'newsletter', 'social_media_campaign', 'coding_project',
-        'moderated_discussion', 'others'];
+        'others'];
 
       if (!validFormats.includes(format)) {
         await ctx.reply('❌ Invalid format. Please choose from the available options.');
@@ -688,7 +688,6 @@ export const listEventsCommand = async (ctx: CommandContext<Context>) => {
   const formatEmoji: Record<string, string> = {
     talk: '🎤',
     workshop: '🛠️',
-    moderated_discussion: '🗣️',
     conference: '🏛️',
     hangout: '☕',
     meeting: '📎',

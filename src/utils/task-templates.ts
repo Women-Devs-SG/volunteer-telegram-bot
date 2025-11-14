@@ -69,7 +69,6 @@ const REQUIRED_BY_FORMAT: Record<Event['format'] | 'default', string[]> = {
   others: ['Content Creation', 'Pre-event Marketing', 'Post-event Marketing'],
   meeting: ['Date Confirmation', 'Venue Coordination', 'Post-event Marketing'],
   hangout: ['Date Confirmation', 'Venue Coordination', 'Post-event Marketing'],
-  moderated_discussion: ['Content Creation', 'Pre-event Marketing', 'Post-event Marketing', 'Moderation', 'Topic Preparation'],
   newsletter: ['Content Creation', 'Review and Editing'],
   social_media_campaign: ['Content Planning', 'Content Creation', 'Content Posting'],
   coding_project: [

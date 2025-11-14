@@ -1,4 +1,4 @@
-CREATE TYPE "public"."event_format" AS ENUM('moderated_discussion', 'conference', 'talk', 'hangout', 'meeting', 'external_speaker', 'newsletter', 'social_media_takeover', 'workshop', 'panel', 'others');--> statement-breakpoint
+CREATE TYPE "public"."event_format" AS ENUM('conference', 'talk', 'hangout', 'meeting', 'external_speaker', 'newsletter', 'social_media_takeover', 'workshop', 'panel', 'others');--> statement-breakpoint
 CREATE TYPE "public"."event_status" AS ENUM('planning', 'published', 'completed', 'cancelled');--> statement-breakpoint
 CREATE TYPE "public"."task_status" AS ENUM('todo', 'in_progress', 'complete');--> statement-breakpoint
 CREATE TYPE "public"."volunteer_status" AS ENUM('probation', 'full', 'lead');--> statement-breakpoint

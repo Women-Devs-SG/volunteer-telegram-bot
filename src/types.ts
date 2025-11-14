@@ -18,8 +18,8 @@ export interface Event {
   id: number;
   title: string;
   date: string;
-  format: 'moderated_discussion' | 'conference' | 'talk' | 'hangout' | 'meeting' | 
-          'external_speaker' | 'newsletter' | 'social_media_campaign' | 'coding_project' | 'workshop' | 'panel' | 'others';
+  format: ('conference' | 'talk' | 'hangout' | 'meeting' | 'external_speaker' |
+    'newsletter' | 'social_media_campaign' | 'coding_project' | 'workshop' | 'panel' | 'others');
   status: 'planning' | 'published' | 'completed' | 'cancelled';
   venue?: string | null;
   details?: string;
