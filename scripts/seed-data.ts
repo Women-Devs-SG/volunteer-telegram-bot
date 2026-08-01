@@ -187,7 +187,13 @@ async function seedData() {
         description: 'Confirm room setup, AV equipment, and catering arrangements.',
         status: 'todo'
       },
-      
+      {
+        event_id: eventList[0].id,
+        title: 'Introduce WDS',
+        description: 'Briefly introduce Women Devs SG and our mission at event start',
+        status: 'todo'
+      },
+
       // Panel Discussion tasks
       {
         event_id: eventList[1].id,
@@ -207,7 +213,13 @@ async function seedData() {
         description: 'Ensure all technical aspects of the online event are working properly.',
         status: 'in_progress'
       },
-      
+      {
+        event_id: eventList[1].id,
+        title: 'Introduce WDS',
+        description: 'Briefly introduce Women Devs SG and our mission at event start',
+        status: 'todo'
+      },
+
       // Community Hangout tasks
       {
         event_id: eventList[3].id,
@@ -221,7 +233,7 @@ async function seedData() {
         description: 'Design social media posts and event descriptions.',
         status: 'todo'
       },
-      
+
       // AI/ML Conference tasks
       {
         event_id: eventList[4].id,
@@ -234,6 +246,12 @@ async function seedData() {
         title: 'Design conference website',
         description: 'Create a professional website with schedule, speakers, and registration.',
         status: 'todo'
+      },
+      {
+        event_id: eventList[4].id,
+        title: 'Introduce WDS',
+        description: 'Briefly introduce Women Devs SG and our mission at event start',
+        status: 'todo'
       }
     ]).returning();
 
@@ -244,14 +262,14 @@ async function seedData() {
       { task_id: taskList[0].id, volunteer_id: volunteerUsers[0].id, assigned_by: volunteerUsers[1].id },
       { task_id: taskList[3].id, volunteer_id: volunteerUsers[0].id, assigned_by: volunteerUsers[1].id },
       { task_id: taskList[8].id, volunteer_id: volunteerUsers[0].id, assigned_by: volunteerUsers[1].id },
-      
+
       // Bob's assignments (as lead)
       { task_id: taskList[1].id, volunteer_id: volunteerUsers[1].id, assigned_by: volunteerUsers[1].id },
       { task_id: taskList[6].id, volunteer_id: volunteerUsers[1].id, assigned_by: volunteerUsers[1].id },
-      
+
       // Carol's assignments (probation)
       { task_id: taskList[7].id, volunteer_id: volunteerUsers[2].id, assigned_by: volunteerUsers[1].id },
-      
+
       // David's assignments
       { task_id: taskList[2].id, volunteer_id: volunteerUsers[3].id, assigned_by: volunteerUsers[1].id },
       { task_id: taskList[4].id, volunteer_id: volunteerUsers[3].id, assigned_by: volunteerUsers[0].id },

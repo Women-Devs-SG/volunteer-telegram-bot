@@ -459,6 +459,84 @@ describe('Bot Commands', () => {
         expect(DrizzleDatabaseService.assignVolunteerToTask).not.toHaveBeenCalled();
         expect(mockCtx.reply).toHaveBeenCalledWith('❌ Task is already complete!');
       });
+
+      describe('Guidance message', () => {
+        beforeEach(async () => {
+          const { DrizzleDatabaseService } = await import('../src/db-drizzle');
+
+          mockCtx.match = '5';
+
+          vi.mocked(DrizzleDatabaseService.getVolunteerByHandle).mockResolvedValue({
+            id: 1,
+            name: 'Test User',
+            telegram_handle: 'testuser',
+            status: 'active',
+            commitments: 3,
+            cumulative_commitments: 3,
+            commit_count_start_date: new Date().toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+
+          vi.mocked(DrizzleDatabaseService.getTaskAssignments).mockResolvedValue([]);
+          vi.mocked(DrizzleDatabaseService.assignVolunteerToTask).mockResolvedValue(true);
+          vi.mocked(DrizzleDatabaseService.getEvent).mockResolvedValue({
+            id: 1,
+            title: 'Test Event',
+            date: new Date().toISOString(),
+            format: 'talk',
+            status: 'planning',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+        });
+
+        // Guidance is looked up by task title, so title is the only input that varies
+        const commitToTask = async (title: string): Promise<string> => {
+          const { DrizzleDatabaseService } = await import('../src/db-drizzle');
+          const { commitCommand } = await import('../src/commands/volunteers');
+
+          vi.mocked(DrizzleDatabaseService.getTask).mockResolvedValue({
+            id: 5,
+            event_id: 1,
+            title,
+            description: 'Task description',
+            status: 'todo',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+
+          await commitCommand(mockCtx);
+
+          return mockCtx.reply.mock.calls[0][0];
+        };
+
+        it('should include the guidance message for a task template that has guidance', async () => {
+          const { TASKS } = await import('../src/utils/task-templates');
+          const guidance = TASKS.find(t => t.title === 'Introduce WDS')?.guidance;
+
+          const message = await commitToTask('Introduce WDS');
+
+          expect(guidance).toBeDefined();
+          expect(message).toContain('Successfully committed to task!');
+          expect(message).toContain('📌 *Guidance:*');
+          expect(message).toContain(guidance);
+        });
+
+        it('should not include a guidance message for a task template without guidance', async () => {
+          const message = await commitToTask('Newsletter Announcement');
+
+          expect(message).toContain('Successfully committed to task!');
+          expect(message).not.toContain('Guidance:');
+        });
+
+        it('should not include a guidance message for a custom task', async () => {
+          const message = await commitToTask('Some custom task');
+
+          expect(message).toContain('Successfully committed to task!');
+          expect(message).not.toContain('Guidance:');
+        });
+      });
     });
 
     describe('Uncommit Command', () => {
