@@ -48,6 +48,7 @@ A husky pre-commit hook runs `npx lint-staged`, which runs `npm run lint` on sta
 - **`src/drizzle.ts`** picks the driver from `NODE_ENV`: `development` → PGlite (file-backed at `./local-db/`, or in-memory if `PGLITE_STORAGE=memory`); `staging`/`production` → real Postgres via `STAGING_DATABASE_URL`/`PRODUCTION_DATABASE_URL` (falls back to `DATABASE_URL`).
 - **Three deployment environments**, each with its own env file and Vercel config: `.env.local` + `vercel.json` (dev), `.env.staging` + `vercel.staging.json`, `.env.production` + `vercel.production.json`. Scripts are consistently suffixed `:local` / `:staging` / `:prod` — there's no bare script that touches a real database.
 - **`src/onboarding-pages/*.html`** are static onboarding pages served to volunteers; they're content, not logic — changes here rarely need tests.
+- **`api/keep-alive.ts`** is a Vercel Cron target (scheduled daily via the `crons` field in `vercel.staging.json`/`vercel.production.json`, deliberately not in the root `vercel.json` since local PGlite has no pause behavior) that runs `DrizzleDatabaseService.pingDatabase()` — a read-only query that keeps Supabase's free-tier project from auto-pausing after 7 days of inactivity. It's not a bot command, so it isn't registered in `src/bot.ts`/`api/webhook.ts` and the command-parity check doesn't apply to it. If `CRON_SECRET` is set, requests must carry a matching `Authorization: Bearer` header.
 
 ## Testing
 
