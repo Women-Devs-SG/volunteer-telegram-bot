@@ -1,4 +1,4 @@
-import { eq, and, ne } from 'drizzle-orm';
+import { eq, and, ne, sql } from 'drizzle-orm';
 import { db } from './drizzle';
 import { volunteers, events, tasks, taskAssignments, admins } from './schema';
 import type { NewVolunteer, NewEvent, NewTask, NewTaskAssignment } from './schema';
@@ -758,6 +758,19 @@ export class DrizzleDatabaseService {
         inactive: [],
         total: 0
       };
+    }
+  }
+
+  // Trivial read-only query used by the keep-alive cron (api/keep-alive.ts) to
+  // count as real database activity, keeping the Supabase free-tier project
+  // from auto-pausing after 7 days of inactivity.
+  static async pingDatabase(): Promise<boolean> {
+    try {
+      await db.execute(sql`select 1`);
+      return true;
+    } catch (error) {
+      console.error('Error pinging database:', error);
+      return false;
     }
   }
 }

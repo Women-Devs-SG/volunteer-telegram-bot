@@ -271,4 +271,21 @@ describe('Database Service', () => {
       expect(report.inactive).toHaveLength(1);
     });
   });
+
+  describe('Keep-alive ping', () => {
+    it('should report the database as reachable', async () => {
+      const isAlive = await DrizzleDatabaseService.pingDatabase();
+      expect(isAlive).toBe(true);
+    });
+
+    it('should not modify any rows', async () => {
+      await DrizzleDatabaseService.createVolunteer('Ping Bystander', '@pingbystander', 'active');
+      const before = await DrizzleDatabaseService.getAllVolunteers();
+
+      await DrizzleDatabaseService.pingDatabase();
+
+      const after = await DrizzleDatabaseService.getAllVolunteers();
+      expect(after).toEqual(before);
+    });
+  });
 });
