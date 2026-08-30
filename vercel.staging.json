@@ -1,0 +1,41 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/webhook.ts",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "api/keep-alive.ts",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "public/**/*",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/webhook",
+      "dest": "/api/webhook.ts"
+    },
+    {
+      "src": "/api/keep-alive",
+      "dest": "/api/keep-alive.ts"
+    },
+    {
+      "src": "/",
+      "dest": "/public/index.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/$1"
+    }
+  ],
+  "crons": [
+    {
+      "path": "/api/keep-alive",
+      "schedule": "0 0 * * *"
+    }
+  ]
+}
