@@ -17,7 +17,11 @@ vi.mock('../src/db-drizzle', () => ({
     getTask: vi.fn(),
     removeVolunteerFromTask: vi.fn(),
     getEvent: vi.fn(),
-    assignVolunteerToTask: vi.fn()
+    assignVolunteerToTask: vi.fn(),
+    createVolunteerWithStatus: vi.fn(),
+    setVolunteerCommitments: vi.fn(),
+    getVolunteerById: vi.fn(),
+    getVolunteerStatusReport: vi.fn()
   }
 }));
 
@@ -45,6 +49,8 @@ describe('Bot Commands', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    // Reload command modules so progress kept in memory by multi-step commands (e.g. /add_volunteer) doesn't carry over between tests
+    vi.resetModules();
 
     mockBot = new Bot('mock-token');
     mockCtx = {
@@ -220,6 +226,120 @@ describe('Bot Commands', () => {
         expect(mockCtx.reply).toHaveBeenCalledWith('❌ Task is already complete!');
       });
     })
+
+    describe('Set Commit Count Command /set_commit_count', () => {
+      it('should reply with the new commitments for the quarter', async () => {
+        const { DrizzleDatabaseService } = await import('../src/db-drizzle');
+        const { setCommitCountCommand } = await import('../src/commands/admins');
+
+        const volunteer = {
+          id: 7,
+          name: 'Helen Tan',
+          telegram_handle: 'helentan',
+          status: 'active' as const,
+          commitments: 3,
+          cumulative_commitments: 5,
+          commit_count_start_date: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+        vi.mocked(DrizzleDatabaseService.getVolunteerByHandle).mockResolvedValue(volunteer);
+        vi.mocked(DrizzleDatabaseService.setVolunteerCommitments).mockResolvedValue(true);
+        vi.mocked(DrizzleDatabaseService.getVolunteerById).mockResolvedValue(volunteer);
+
+        mockCtx.match = '@helentan 3';
+        await setCommitCountCommand(mockCtx);
+
+        const reply = mockCtx.reply.mock.calls.at(-1)[0] as string;
+        expect(reply).toContain('Commit count updated!');
+        expect(reply).toContain('Helen Tan (@helentan) now has 3 commitments for the quarter!');
+      });
+    });
+
+    describe('Volunteer Status Report Command /volunteer_status_report', () => {
+      it('should show the commitments and total for each volunteer status', async () => {
+        const { DrizzleDatabaseService } = await import('../src/db-drizzle');
+        const { volunteerStatusReportCommand } = await import('../src/commands/volunteers');
+
+        const createVolunteer = (id: number, name: string, status: 'lead' | 'active' | 'probation' | 'inactive', commitments: number, cumulativeCommitments: number) => ({
+          id,
+          name,
+          telegram_handle: name.toLowerCase(),
+          status,
+          commitments,
+          cumulative_commitments: cumulativeCommitments,
+          commit_count_start_date: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+        vi.mocked(DrizzleDatabaseService.isAdmin).mockResolvedValue(true);
+        vi.mocked(DrizzleDatabaseService.getVolunteerStatusReport).mockResolvedValue({
+          lead: [createVolunteer(1, 'Lena', 'lead', 2, 9)],
+          active: [createVolunteer(2, 'Adam', 'active', 3, 8)],
+          probation: [createVolunteer(3, 'Priya', 'probation', 1, 7)],
+          inactive: [createVolunteer(4, 'Ivan', 'inactive', 0, 6)],
+          total: 4
+        });
+
+        await volunteerStatusReportCommand(mockCtx);
+
+        const reply = mockCtx.reply.mock.calls.at(-1)[0] as string;
+        expect(reply).toContain('Lena (@lena) - 2 commitments (9 total)');
+        expect(reply).toMatch(/Adam \(@adam\) - 3 commitments \(Tracking: .*, 8 total\)/);
+        expect(reply).toMatch(/Priya \(@priya\) - 1 commitments \(Tracking: .*, 7 total\)/);
+        expect(reply).toMatch(/Ivan \(@ivan\) - 0 commitments \(Tracking: .*, 6 total\)/);
+      });
+    });
+
+    describe('Add Volunteer Command /add_volunteer', () => {
+      it('should add a new volunteer with more than 0 commitments entered and show the matching total', async () => {
+        const { DrizzleDatabaseService } = await import('../src/db-drizzle');
+        const { addVolunteerCommand, handleAddVolunteerWizard } = await import('../src/commands/admins');
+
+        // Stub Telegram user ID of the admin running /add_volunteer
+        // The command asks one question at a time and uses this ID to remember which question comes next
+        mockCtx.from.id = 42;
+
+        vi.mocked(DrizzleDatabaseService.getVolunteerByHandle).mockResolvedValue(null);
+        vi.mocked(DrizzleDatabaseService.createVolunteerWithStatus).mockResolvedValue({
+          id: 7,
+          name: 'Helen Tan',
+          telegram_handle: 'helentan',
+          status: 'active',
+          commitments: 0,
+          cumulative_commitments: 0,
+          commit_count_start_date: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+        vi.mocked(DrizzleDatabaseService.setVolunteerCommitments).mockResolvedValue(true);
+        vi.mocked(DrizzleDatabaseService.getVolunteerById).mockResolvedValue({
+          id: 7,
+          name: 'Helen Tan',
+          telegram_handle: 'helentan',
+          status: 'active',
+          commitments: 4,
+          cumulative_commitments: 4,
+          commit_count_start_date: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+
+        await addVolunteerCommand(mockCtx);
+
+        // Reply to each question the command asks: name, handle, status, commitments
+        for (const answer of ['Helen Tan', '@helentan', 'active', '4']) {
+          mockCtx.message.text = answer;
+          await handleAddVolunteerWizard(mockCtx);
+        }
+
+        const finalReply = mockCtx.reply.mock.calls.at(-1)[0] as string;
+        expect(finalReply).toContain('Volunteer added successfully');
+        expect(finalReply).toContain('Commitments: 4');
+        expect(finalReply).toContain('4 total');
+      });
+    });
   });
 
   describe('Event Commands', () => {

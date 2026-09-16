@@ -80,26 +80,29 @@ describe('Database Service', () => {
       expect(updated?.cumulative_commitments).toBe(5);
     });
 
-    it('should apply delta to cumulative_commitments when setVolunteerCommitments is called with a new value (only for current quarter)', async () => {
+    it('should change cumulative_commitments by the same amount when setVolunteerCommitments raises or lowers commitments (for the quarter)', async () => {
       const volunteer = await DrizzleDatabaseService.createVolunteer('Dan Carter', '@dancarter', 'active');
       expect(volunteer).toBeTruthy();
 
       // Set initial commitments: commitments=3, cumulative=3
       await DrizzleDatabaseService.setVolunteerCommitments(volunteer!.id, 3);
 
-      // Increase to 7: delta=+4, so cumulative should become 3+4=7
+      // New quarter: commitments=0, cumulative=3
+      await DrizzleDatabaseService.resetQuarterCommitments(new Date());
+
+      // Increase to 7: delta=+7, so cumulative should become 3+7=10
       await DrizzleDatabaseService.setVolunteerCommitments(volunteer!.id, 7);
 
       const afterIncrease = await DrizzleDatabaseService.getVolunteerByHandle('@dancarter');
       expect(afterIncrease?.commitments).toBe(7);
-      expect(afterIncrease?.cumulative_commitments).toBe(7);
+      expect(afterIncrease?.cumulative_commitments).toBe(10);
 
-      // Decrease to 5: delta=-2, so cumulative should become 7-2=5
+      // Decrease to 5: delta=-2, so cumulative should become 10-2=8
       await DrizzleDatabaseService.setVolunteerCommitments(volunteer!.id, 5);
 
       const afterDecrease = await DrizzleDatabaseService.getVolunteerByHandle('@dancarter');
       expect(afterDecrease?.commitments).toBe(5);
-      expect(afterDecrease?.cumulative_commitments).toBe(5);
+      expect(afterDecrease?.cumulative_commitments).toBe(8);
     });
 
     it('should get all volunteers', async () => {
