@@ -45,7 +45,8 @@
     "test:coverage": "vitest run --coverage",
     "db:generate": "drizzle-kit generate",
     "db:introspect": "ts-node scripts/introspect-db.ts",
-    "prepare": "husky"
+    "prepare": "husky",
+    "check:parity": "ts-node scripts/check-command-parity.ts"
   },
   "lint-staged": {
     "*.{js,ts,mts}": "npm run lint"
