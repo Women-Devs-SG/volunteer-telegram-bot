@@ -529,7 +529,7 @@ export const volunteerStatusReportCommand = async (ctx: CommandContext<Context>)
       report.lead.forEach(v => {
         const safeName = escapeMarkdown(v.name);
         const safeHandle = escapeMarkdown(v.telegram_handle);
-        message += `• ${safeName} (@${safeHandle}) - ${v.commitments} commitments\n`;
+        message += `• ${safeName} (@${safeHandle}) - ${v.commitments} commitments (${v.cumulative_commitments} total)\n`;
       });
       message += `\n`;
     }
@@ -541,7 +541,7 @@ export const volunteerStatusReportCommand = async (ctx: CommandContext<Context>)
         const safeHandle = escapeMarkdown(v.telegram_handle);
         const start = new Date((v as any).commit_count_start_date || v.updated_at);
         const endText = (v as any).probation_end_date ? new Date((v as any).probation_end_date).toLocaleDateString() : 'present';
-        message += `• ${safeName} (@${safeHandle}) - ${v.commitments} commitments (Tracking: ${start.toLocaleDateString()} → ${endText})\n`;
+        message += `• ${safeName} (@${safeHandle}) - ${v.commitments} commitments (Tracking: ${start.toLocaleDateString()} → ${endText}, ${v.cumulative_commitments} total)\n`;
       });
       message += `\n`;
     }
@@ -553,7 +553,7 @@ export const volunteerStatusReportCommand = async (ctx: CommandContext<Context>)
         const safeHandle = escapeMarkdown(v.telegram_handle);
         const start = new Date((v as any).commit_count_start_date || v.updated_at);
         const endText = (v as any).probation_end_date ? new Date((v as any).probation_end_date).toLocaleDateString() : 'present';
-        message += `• ${safeName} (@${safeHandle}) - ${v.commitments} commitments (Tracking: ${start.toLocaleDateString()} → ${endText})\n`;
+        message += `• ${safeName} (@${safeHandle}) - ${v.commitments} commitments (Tracking: ${start.toLocaleDateString()} → ${endText}, ${v.cumulative_commitments} total)\n`;
       });
       message += `\n`;
     }
@@ -565,7 +565,7 @@ export const volunteerStatusReportCommand = async (ctx: CommandContext<Context>)
         const safeHandle = escapeMarkdown(v.telegram_handle);
         const start = new Date((v as any).commit_count_start_date || v.updated_at);
         const endText = (v as any).probation_end_date ? new Date((v as any).probation_end_date).toLocaleDateString() : 'present';
-        message += `• ${safeName} (@${safeHandle}) - ${v.commitments} commitments (Tracking: ${start.toLocaleDateString()} → ${endText})\n`;
+        message += `• ${safeName} (@${safeHandle}) - ${v.commitments} commitments (Tracking: ${start.toLocaleDateString()} → ${endText}, ${v.cumulative_commitments} total)\n`;
       });
       message += `\n`;
     }
