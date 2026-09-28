@@ -229,7 +229,7 @@ docs: update setup instructions
 test: add tests for event creation
 ```
 
-The allowed types come from the standard [`@commitlint/config-conventional`](https://github.com/conventional-changelog/commitlint/tree/master/@commitlint/config-conventional) config: `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, and `test`. Scope is optional. Write the subject in lower case, without a final period.
+The allowed types come from the standard [`@commitlint/config-conventional`](https://github.com/conventional-changelog/commitlint/tree/master/@commitlint/config-conventional) config: `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, and `test`. Write the subject in lower case, without a final period.
 
 Run `npm run commit` after staging changes for a guided type, scope, and subject prompt. It uses the same commitlint config as the hook. Plain `git commit`, with or without `-m`, also works; the hook checks the completed message in either case.
 

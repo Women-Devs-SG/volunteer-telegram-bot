@@ -61,7 +61,7 @@ A separate `commit-msg` hook checks messages with commitlint. Stage changes and 
 
 ## Conventions
 
-- **Commits**: commitlint enforces `type: subject` or `type(scope): subject` using the standard `@commitlint/config-conventional` types (`build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, `test`). Scope is optional. `npm run commit` prompts for a valid message from the same config. PRs are squash-merged and GitHub appends `(#N)` to the subject automatically — don't add the PR number yourself.
+- **Commits**: commitlint enforces `type: subject` or `type(scope): subject` using the standard `@commitlint/config-conventional` types (`build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, `test`). `npm run commit` prompts for a valid message from the same config. PRs are squash-merged and GitHub appends `(#N)` to the subject automatically — don't add the PR number yourself.
 - **Telegram formatting**: handlers mix HTML and Markdown parse modes — match whatever the surrounding handler already uses rather than introducing a third style. Always escape user-controlled text (volunteer names, handles, free-text fields) before interpolating into an HTML-parsed message (see `escapeHtml` in `src/utils.ts`).
 - **Admin authorization**: gate admin-only commands with `requireAdmin` from `src/commands/admins.ts` — never write an ad hoc secret check.
 - **Interactive wizards**: multi-step flows use grammY session state (`SessionFlavor`) — see `handleEventWizard` / `handleAddVolunteerWizard` for the pattern. Always give the user a way out via `/cancel`.
