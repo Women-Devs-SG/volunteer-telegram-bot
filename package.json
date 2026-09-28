@@ -64,7 +64,7 @@
     "@electric-sql/pglite": "^0.2.0",
     "dotenv": "^16.3.1",
     "drizzle-kit": "^0.31.4",
-    "drizzle-orm": "^0.44.5",
+    "drizzle-orm": "0.45.2",
     "grammy": "^1.19.2",
     "postgres": "^3.4.7"
   },
@@ -74,7 +74,7 @@
     "@types/jest": "^29.5.0",
     "@types/node": "^20.0.0",
     "@types/supertest": "^6.0.0",
-    "@vitest/coverage-v8": "^3.2.4",
+    "@vitest/coverage-v8": "3.2.7",
     "dotenv-cli": "^7.4.2",
     "drizzle-kit": "^0.31.4",
     "eslint": "^9.38.0",
@@ -86,6 +86,11 @@
     "ts-node": "^10.9.1",
     "typescript": "^5.0.0",
     "typescript-eslint": "^8.46.1",
-    "vitest": "^3.2.4"
+    "vite": "7.3.6",
+    "vitest": "3.2.7"
+  },
+  "overrides": {
+    "ast-v8-to-istanbul": "1.0.6",
+    "rollup": "4.63.3"
   }
 }
