@@ -36,6 +36,7 @@ npx ts-node scripts/check-command-parity.ts   # verify src/bot.ts and api/webhoo
 There is no npm script for the parity check — invoke `ts-node` directly, or check the `bot.command('...')` calls manually.
 
 A husky pre-commit hook runs `npx lint-staged`, which runs `npm run lint` on staged `.js`/`.ts`/`.mts` files. Don't bypass it with `--no-verify`.
+A separate `commit-msg` hook checks messages with commitlint. Stage changes and run `npm run commit` for a guided Commitizen prompt, or use plain `git commit` with or without `-m`.
 
 ## Architecture — read before editing
 
@@ -60,7 +61,7 @@ A husky pre-commit hook runs `npx lint-staged`, which runs `npm run lint` on sta
 
 ## Conventions
 
-- **Commits**: conventional style, `type: subject` or `type(scope): subject`. Types actually used in history: `feat`, `fix`, `docs`, `chore`, `test`, `build`, `refactor`. PRs are squash-merged and GitHub appends `(#N)` to the subject automatically — don't add the PR number yourself.
+- **Commits**: commitlint enforces `type: subject` or `type(scope): subject` using the standard `@commitlint/config-conventional` types (`build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, `test`). `npm run commit` prompts for a valid message from the same config. PRs are squash-merged and GitHub appends `(#N)` to the subject automatically — don't add the PR number yourself.
 - **Telegram formatting**: handlers mix HTML and Markdown parse modes — match whatever the surrounding handler already uses rather than introducing a third style. Always escape user-controlled text (volunteer names, handles, free-text fields) before interpolating into an HTML-parsed message (see `escapeHtml` in `src/utils.ts`).
 - **Admin authorization**: gate admin-only commands with `requireAdmin` from `src/commands/admins.ts` — never write an ad hoc secret check.
 - **Interactive wizards**: multi-step flows use grammY session state (`SessionFlavor`) — see `handleEventWizard` / `handleAddVolunteerWizard` for the pattern. Always give the user a way out via `/cancel`.
