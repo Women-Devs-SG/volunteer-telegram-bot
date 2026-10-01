@@ -1,8 +1,8 @@
 import { Context, CommandContext } from 'grammy';
 import { DrizzleDatabaseService } from '../db-drizzle';
 import { Event } from '../types';
-import { 
-  parseDate, 
+import {
+  parseDate,
   formatEventDetails,
   TBD_DATE_ISO,
   isTbdDateIso,
@@ -28,7 +28,7 @@ const removeEventState = new Map<number, { eventId: number }>();
 export const createEventCommand = async (ctx: CommandContext<Context>) => {
   const userId = ctx.from?.id;
   const telegramHandle = ctx.from?.username;
-  
+
   if (!userId) {
     await ctx.reply('❌ Unable to identify user.');
     return;
@@ -48,7 +48,7 @@ export const createEventCommand = async (ctx: CommandContext<Context>) => {
 
   // Initialize conversation state and stash creator id
   conversationState.set(userId, { step: 'title', createdBy: creator?.id });
-  
+
   await ctx.reply(
     '🎯 **Event Creation Wizard**\n\n' +
     'Let\'s create a new event! I\'ll guide you through the process.\n\n' +
@@ -181,7 +181,7 @@ export const handleEditEventWizard = async (ctx: Context) => {
     }
     case 'menu': {
       const choice = text.toLowerCase();
-      if (['title','date','format','venue','details','status'].includes(choice)) {
+      if (['title', 'date', 'format', 'venue', 'details', 'status'].includes(choice)) {
         state.field = choice as any;
         state.step = 'field_value';
         if (choice === 'date') {
@@ -248,7 +248,7 @@ export const handleEditEventWizard = async (ctx: Context) => {
         }
       } else if (field === 'status') {
         const statusInput = text.toLowerCase();
-        const validStatuses: Array<'planning' | 'published' | 'completed' | 'cancelled'> = ['planning','published','completed','cancelled'];
+        const validStatuses: Array<'planning' | 'published' | 'completed' | 'cancelled'> = ['planning', 'published', 'completed', 'cancelled'];
         if (!validStatuses.includes(statusInput as any)) {
           await ctx.reply('❌ Invalid status. Use one of: planning, published, completed, cancelled');
           return;
@@ -262,7 +262,7 @@ export const handleEditEventWizard = async (ctx: Context) => {
         }
         break;
       } else if (field === 'format') {
-        fields.format = text.toLowerCase().replace(/\s+/g,'_');
+        fields.format = text.toLowerCase().replace(/\s+/g, '_');
       } else if (field === 'venue') {
         fields.venue = text.toLowerCase() === 'null' ? null : text;
       } else if (field === 'details') {
@@ -323,7 +323,7 @@ export const handleEditEventWizard = async (ctx: Context) => {
       let status: 'todo' | 'in_progress' | 'complete' | undefined;
       if (parts[1]) {
         const s = parts[1] as any;
-        if (['todo','in_progress','complete'].includes(s)) status = s;
+        if (['todo', 'in_progress', 'complete'].includes(s)) status = s;
       }
       if (!status) {
         state.pendingTask = { title: String(taskId) };
@@ -344,7 +344,7 @@ export const handleEditEventWizard = async (ctx: Context) => {
       const taskIdStr = state.pendingTask?.title || '';
       const taskId = parseInt(taskIdStr, 10);
       const s = text.trim() as any;
-      if (!['todo','in_progress','complete'].includes(s)) {
+      if (!['todo', 'in_progress', 'complete'].includes(s)) {
         await ctx.reply('❌ Invalid status. Use one of: todo | in_progress | complete');
         return;
       }
@@ -365,13 +365,13 @@ export const handleEditEventWizard = async (ctx: Context) => {
 export const handleEventWizard = async (ctx: Context) => {
   const userId = ctx.from?.id;
   const text = ctx.message?.text;
-  
+
   if (!userId || !text || !conversationState.has(userId)) {
     return;
   }
 
   const state = conversationState.get(userId);
-  
+
   switch (state.step) {
     case 'title':
       state.title = text;
@@ -407,7 +407,7 @@ export const handleEventWizard = async (ctx: Context) => {
         'Please choose one:\n' +
         '• `talk` - Single speaker presentation\n' +
         '• `workshop` - Interactive learning session\n' +
-        '• `moderated_discussion` - Facilitated discussion\n' +
+        '• `panel` - Facilitated discussion\n' +
         '• `conference` - Large-scale conference\n' +
         '• `hangout` - Casual social gathering\n' +
         '• `meeting` - Formal meeting\n' +
@@ -423,15 +423,15 @@ export const handleEventWizard = async (ctx: Context) => {
 
     case 'format':
       const format = text.toLowerCase().replace(/\s+/g, '_') as Event['format'];
-      const validFormats = ['workshop', 'panel', 'conference', 'talk', 'hangout', 'meeting', 
-                           'external_speaker', 'newsletter', 'social_media_campaign', 'coding_project',
-                           'moderated_discussion', 'others'];
-      
+      const validFormats = ['workshop', 'panel', 'conference', 'talk', 'hangout', 'meeting',
+        'external_speaker', 'newsletter', 'social_media_campaign', 'coding_project',
+        'moderated_discussion', 'others'];
+
       if (!validFormats.includes(format)) {
         await ctx.reply('❌ Invalid format. Please choose from the available options.');
         return;
       }
-      
+
       state.format = format;
       state.step = 'venue';
       await ctx.reply(
@@ -456,20 +456,20 @@ export const handleEventWizard = async (ctx: Context) => {
       const details = text.toLowerCase() === 'skip' ? undefined : text;
       state.details = details;
       state.step = 'tasks';
-      
+
       // Show task selection options
       const allTemplates = getAllTaskTemplates();
       const recommendedTasks = getRequiredTasks(state.format);
-      
+
       let taskMessage = '**Step 6/6:** Select tasks for this event\n\n';
       taskMessage += '**Recommended tasks for this event format:**\n';
       recommendedTasks.forEach((task, index) => {
         taskMessage += `✅ ${index + 1}. ${task.title} - ${task.description}\n`;
       });
-      
+
       taskMessage += '\n**All available tasks:**';
       taskMessage += formatTaskTemplatesForSelection(allTemplates);
-      
+
       taskMessage += '\n\n**Instructions:**\n';
       taskMessage += '• Type "recommended" to use only the recommended tasks\n';
       taskMessage += '• Type task numbers separated by commas (e.g., "1,3,7,12") to select specific tasks\n';
@@ -478,7 +478,7 @@ export const handleEventWizard = async (ctx: Context) => {
       taskMessage += '• Type "custom" to add a custom task (you can add multiple). When you are done adding custom tasks, type one of the options above or "done" to finish';
       state.customTasks = [];
       state.pendingTask = undefined;
-      
+
       await ctx.reply(taskMessage, { parse_mode: 'Markdown' });
       break;
 
@@ -504,7 +504,7 @@ export const handleEventWizard = async (ctx: Context) => {
         // Parse comma-separated task numbers
         const taskNumbers = taskSelection.split(',').map(n => parseInt(n.trim())).filter(n => !isNaN(n));
         const allTemplates = getAllTaskTemplates();
-        
+
         for (const num of taskNumbers) {
           if (num >= 1 && num <= allTemplates.length) {
             const template = allTemplates[num - 1];
@@ -513,13 +513,13 @@ export const handleEventWizard = async (ctx: Context) => {
             }
           }
         }
-        
+
         if (selectedTasks.length === 0 && taskNumbers.length > 0) {
           await ctx.reply('❌ Invalid task selection. Please try again with valid task numbers.');
           return;
         }
       }
-      
+
       // Create the event
       const event = await DrizzleDatabaseService.createEvent(
         state.title,
@@ -529,7 +529,7 @@ export const handleEventWizard = async (ctx: Context) => {
         state.venue,
         state.createdBy
       );
-      
+
       if (!event) {
         await ctx.reply('❌ Failed to create event. Please try again.');
         conversationState.delete(userId);
@@ -546,7 +546,7 @@ export const handleEventWizard = async (ctx: Context) => {
 
       // Create selected tasks for the event
       const createdTasks = [];
-      
+
       for (const taskTemplate of mergedTasks) {
         const task = await DrizzleDatabaseService.createTask(
           event.id,
@@ -560,7 +560,7 @@ export const handleEventWizard = async (ctx: Context) => {
 
       // Clear conversation state
       conversationState.delete(userId);
-      
+
       let successMessage = `✅ <b>Event created successfully!</b>\n\n`;
       const createdDetails = await formatEventDetails(event, createdTasks);
       successMessage += createdDetails;
@@ -574,7 +574,7 @@ export const handleEventWizard = async (ctx: Context) => {
       } else {
         successMessage += `\nNo tasks were created for this event.`;
       }
-      
+
       await ctx.reply(successMessage, { parse_mode: 'HTML' });
       break;
 
@@ -699,7 +699,7 @@ export const listEventsCommand = async (ctx: CommandContext<Context>) => {
     panel: '👥',
     others: '📌',
   };
-  
+
   for (const event of sortedEvents) {
     const tasks = await DrizzleDatabaseService.getEventTasks(event.id);
     const emoji = formatEmoji[event.format] || '📌';
@@ -714,21 +714,21 @@ export const listEventsCommand = async (ctx: CommandContext<Context>) => {
       }
     }
     const totalTasks = tasks.length;
-    
+
     message += `${emoji} <b>${event.title}</b> (ID: ${event.id})\n`;
     message += `Date: ${dateText} | Status: ${event.status}`;
     if (event.venue) {
       message += ` | 📍 ${event.venue}`;
     }
     message += `\n`;
-    
+
     if (totalTasks > 0) {
       const unassignedText = unassignedCount > 0 ? `⚠️ <b>${unassignedCount}</b>` : `✅ ${unassignedCount}`;
       message += `Tasks: ${unassignedText}/${totalTasks} tasks needing volunteers \n`;
     } else {
       message += `📋 No tasks created yet\n`;
     }
-    
+
     message += '\n';
   }
 
@@ -743,7 +743,7 @@ export const listEventsCommand = async (ctx: CommandContext<Context>) => {
 // /event_details command - show detailed event information
 export const eventDetailsCommand = async (ctx: CommandContext<Context>) => {
   const eventIdStr = ctx.match?.toString().trim();
-  
+
   if (!eventIdStr) {
     await ctx.reply(
       '❌ **Usage:** `/event_details <event_id>`\n\n' +
@@ -754,14 +754,14 @@ export const eventDetailsCommand = async (ctx: CommandContext<Context>) => {
   }
 
   const eventId = parseInt(eventIdStr);
-  
+
   if (isNaN(eventId)) {
     await ctx.reply('❌ Invalid event ID.');
     return;
   }
 
   const event = await DrizzleDatabaseService.getEvent(eventId);
-  
+
   if (!event) {
     await ctx.reply('❌ Event not found.');
     return;
@@ -794,7 +794,7 @@ export const eventDetailsCommand = async (ctx: CommandContext<Context>) => {
 // Clear conversation state on cancel
 export const cancelCommand = async (ctx: CommandContext<Context>) => {
   const userId = ctx.from?.id;
-  
+
   if (userId && conversationState.has(userId)) {
     conversationState.delete(userId);
     await ctx.reply('❌ Current operation cancelled.');
