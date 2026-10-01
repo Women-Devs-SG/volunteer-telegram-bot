@@ -8,7 +8,7 @@ process.env.NODE_ENV = 'development';
 
 beforeAll(async () => {
   console.log('Setting up test environment...');
-  
+
   // Create enums and tables directly without migrations
   try {
     // Create enums if they don't exist
@@ -19,7 +19,7 @@ beforeAll(async () => {
         WHEN duplicate_object THEN null;
       END $$;
     `);
-    
+
     await db.execute(sql`
       DO $$ BEGIN
         CREATE TYPE event_format AS ENUM('moderated_discussion', 'conference', 'talk', 'hangout', 'meeting', 'external_speaker', 'newsletter', 'social_media_campaign', 'coding_project', 'workshop', 'panel', 'others');
@@ -27,7 +27,7 @@ beforeAll(async () => {
         WHEN duplicate_object THEN null;
       END $$;
     `);
-    
+
     await db.execute(sql`
       DO $$ BEGIN
         CREATE TYPE event_status AS ENUM('planning', 'published', 'completed', 'cancelled');
@@ -35,7 +35,7 @@ beforeAll(async () => {
         WHEN duplicate_object THEN null;
       END $$;
     `);
-    
+
     await db.execute(sql`
       DO $$ BEGIN
         CREATE TYPE task_status AS ENUM('todo', 'in_progress', 'complete');
@@ -43,7 +43,7 @@ beforeAll(async () => {
         WHEN duplicate_object THEN null;
       END $$;
     `);
-    
+
     // Create tables using raw SQL to avoid migration issues
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS volunteers (
@@ -52,13 +52,14 @@ beforeAll(async () => {
         telegram_handle TEXT NOT NULL UNIQUE,
         status volunteer_status NOT NULL DEFAULT 'probation',
         commitments INTEGER NOT NULL DEFAULT 0,
+        cumulative_commitments INTEGER NOT NULL DEFAULT 0,
         commit_count_start_date TIMESTAMPTZ DEFAULT NOW(),
         probation_end_date TIMESTAMPTZ,
         created_at TIMESTAMPTZ DEFAULT NOW(),
         updated_at TIMESTAMPTZ DEFAULT NOW()
       )
     `);
-    
+
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS events (
         id SERIAL PRIMARY KEY,
@@ -73,7 +74,7 @@ beforeAll(async () => {
         updated_at TIMESTAMPTZ DEFAULT NOW()
       )
     `);
-    
+
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS tasks (
         id SERIAL PRIMARY KEY,
@@ -85,7 +86,7 @@ beforeAll(async () => {
         updated_at TIMESTAMPTZ DEFAULT NOW()
       )
     `);
-    
+
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS task_assignments (
         id SERIAL PRIMARY KEY,
@@ -95,7 +96,7 @@ beforeAll(async () => {
         assigned_at TIMESTAMPTZ DEFAULT NOW()
       )
     `);
-    
+
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS admins (
         id SERIAL PRIMARY KEY,

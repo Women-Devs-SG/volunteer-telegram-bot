@@ -8,6 +8,7 @@ export interface Volunteer {
   telegram_handle: string;
   status: 'probation' | 'active' | 'lead' | 'inactive';
   commitments: number;
+  cumulative_commitments: number;
   commit_count_start_date: string;
   probation_end_date?: string | null;
   created_at: string;

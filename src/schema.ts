@@ -27,6 +27,7 @@ export const volunteers = pgTable('volunteers', {
   telegram_handle: text('telegram_handle').notNull().unique(),
   status: volunteerStatusEnum('status').notNull().default('probation'),
   commitments: integer('commitments').notNull().default(0),
+  cumulative_commitments: integer('cumulative_commitments').notNull().default(0),
   commit_count_start_date: timestamp('commit_count_start_date', { withTimezone: true }).defaultNow(),
   probation_end_date: timestamp('probation_end_date', { withTimezone: true }),
   created_at: timestamp('created_at', { withTimezone: true }).defaultNow(),

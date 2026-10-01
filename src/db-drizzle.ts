@@ -10,6 +10,7 @@ interface Volunteer {
   telegram_handle: string;
   status: 'probation' | 'active' | 'lead' | 'inactive';
   commitments: number;
+  cumulative_commitments: number;
   commit_count_start_date: string;
   probation_end_date?: string | null;
   created_at: string;
@@ -194,11 +195,22 @@ export class DrizzleDatabaseService {
     }
   }
 
+  /**
+   * Sets the current-quarter commitments for a volunteer and adjusts the cumulative total by the same delta.
+   * @param id - Volunteer ID
+   * @param commitments - New current-quarter commitment count
+   */
   static async setVolunteerCommitments(id: number, commitments: number): Promise<boolean> {
     try {
+      const current = await this.getVolunteerById(id);
+      if (!current) return false;
+      // Apply the same change in value to the cumulative total so history is preserved.
+      const change = commitments - (current.commitments ?? 0);
+      const newCumulative = Math.max(0, (current.cumulative_commitments ?? 0) + change);
       await db.update(volunteers)
-        .set({ 
+        .set({
           commitments,
+          cumulative_commitments: newCumulative,
           updated_at: new Date()
         })
         .where(eq(volunteers.id, id));
@@ -534,6 +546,7 @@ export class DrizzleDatabaseService {
         commit_count_start_date: toISOString((volunteer as any).commit_count_start_date),
         probation_end_date: (volunteer as any).probation_end_date ? toISOString((volunteer as any).probation_end_date) : null,
         commitments: volunteer.commitments || 0,
+        cumulative_commitments: volunteer.cumulative_commitments || 0,
         created_at: toISOString(volunteer.created_at),
         updated_at: toISOString(volunteer.updated_at),
       };

@@ -15,6 +15,7 @@ describe('Database Service', () => {
       expect(volunteer?.telegram_handle).toBe('@testuser');
       expect(volunteer?.status).toBe('probation');
       expect(volunteer?.commitments).toBe(0);
+      expect(volunteer?.cumulative_commitments).toBe(0);
     });
 
     it('should get volunteer by handle', async () => {
@@ -22,7 +23,7 @@ describe('Database Service', () => {
       await DrizzleDatabaseService.createVolunteer('Jane Doe', '@janedoe', 'active');
 
       const volunteer = await DrizzleDatabaseService.getVolunteerByHandle('@janedoe');
-      
+
       expect(volunteer).toBeTruthy();
       expect(volunteer?.name).toBe('Jane Doe');
       expect(volunteer?.telegram_handle).toBe('@janedoe');
@@ -54,6 +55,54 @@ describe('Database Service', () => {
 
       const updatedVolunteer = await DrizzleDatabaseService.getVolunteerByHandle('@alice');
       expect(updatedVolunteer?.commitments).toBe(1);
+    });
+
+    it('should increment cumulative_commitments when incrementing commitments', async () => {
+      const volunteer = await DrizzleDatabaseService.createVolunteer('Bob Smith', '@bobsmith', 'active');
+      expect(volunteer).toBeTruthy();
+      expect(volunteer?.cumulative_commitments).toBe(0);
+
+      await DrizzleDatabaseService.incrementVolunteerCommitments(volunteer!.id);
+
+      const updated = await DrizzleDatabaseService.getVolunteerByHandle('@bobsmith');
+      expect(updated?.commitments).toBe(1);
+      expect(updated?.cumulative_commitments).toBe(1);
+    });
+
+    it('should update both commitments and cumulative_commitments via setVolunteerCommitments', async () => {
+      const volunteer = await DrizzleDatabaseService.createVolunteer('Carol White', '@carolwhite', 'active');
+      expect(volunteer).toBeTruthy();
+
+      await DrizzleDatabaseService.setVolunteerCommitments(volunteer!.id, 5);
+
+      const updated = await DrizzleDatabaseService.getVolunteerByHandle('@carolwhite');
+      expect(updated?.commitments).toBe(5);
+      expect(updated?.cumulative_commitments).toBe(5);
+    });
+
+    it('should change cumulative_commitments by the same amount when setVolunteerCommitments raises or lowers commitments (for the quarter)', async () => {
+      const volunteer = await DrizzleDatabaseService.createVolunteer('Dan Carter', '@dancarter', 'active');
+      expect(volunteer).toBeTruthy();
+
+      // Set initial commitments: commitments=3, cumulative=3
+      await DrizzleDatabaseService.setVolunteerCommitments(volunteer!.id, 3);
+
+      // New quarter: commitments=0, cumulative=3
+      await DrizzleDatabaseService.resetQuarterCommitments(new Date());
+
+      // Increase to 7: delta=+7, so cumulative should become 3+7=10
+      await DrizzleDatabaseService.setVolunteerCommitments(volunteer!.id, 7);
+
+      const afterIncrease = await DrizzleDatabaseService.getVolunteerByHandle('@dancarter');
+      expect(afterIncrease?.commitments).toBe(7);
+      expect(afterIncrease?.cumulative_commitments).toBe(10);
+
+      // Decrease to 5: delta=-2, so cumulative should become 10-2=8
+      await DrizzleDatabaseService.setVolunteerCommitments(volunteer!.id, 5);
+
+      const afterDecrease = await DrizzleDatabaseService.getVolunteerByHandle('@dancarter');
+      expect(afterDecrease?.commitments).toBe(5);
+      expect(afterDecrease?.cumulative_commitments).toBe(8);
     });
 
     it('should get all volunteers', async () => {
@@ -111,7 +160,7 @@ describe('Database Service', () => {
       const updatedEvent = await DrizzleDatabaseService.getEvent(event!.id);
       expect(updatedEvent?.status).toBe('published');
     });
-    
+
     it('should return only incomplete events from getAllIncompleteEvents', async () => {
       // Create events with different statuses
       const event1 = await DrizzleDatabaseService.createEvent(
@@ -121,7 +170,7 @@ describe('Database Service', () => {
         'Planning phase',
         'Tech Hub'
       );
-      
+
       const event2 = await DrizzleDatabaseService.createEvent(
         'Completed Event',
         '2024-09-20T17:00:00Z',
@@ -129,7 +178,7 @@ describe('Database Service', () => {
         'Already happened',
         'Conference Center'
       );
-      
+
       const event3 = await DrizzleDatabaseService.createEvent(
         'Incomplete Event 2',
         '2024-11-30T17:00:00Z',
@@ -145,29 +194,29 @@ describe('Database Service', () => {
         'Cancelled workshop',
         'Tech Hub'
       );
-      
+
       // Set event2 as completed
       await DrizzleDatabaseService.updateEventStatus(event2!.id, 'completed');
-      
+
       // Set event3 as published
       await DrizzleDatabaseService.updateEventStatus(event3!.id, 'published');
 
       // Set event4 as cancelled
       await DrizzleDatabaseService.updateEventStatus(event4!.id, 'cancelled');
-      
+
       // Get all incomplete events
       const incompleteEvents = await DrizzleDatabaseService.getPlanningPublishedEvents();
-      
+
       // Check that only non-completed events are returned
       expect(incompleteEvents).toHaveLength(2);
-      
+
       // Verify specific events by checking their titles
       const titles = incompleteEvents.map(e => e.title);
       expect(titles).toContain('Incomplete Event 1');
       expect(titles).toContain('Incomplete Event 2');
       expect(titles).not.toContain('Completed Event');
       expect(titles).not.toContain('Cancelled Event');
-      
+
       // Verify their statuses
       const statuses = incompleteEvents.map(e => e.status);
       expect(statuses).toContain('planning');
@@ -216,6 +265,33 @@ describe('Database Service', () => {
       expect(assignments[0].volunteer_id).toBe(volunteer!.id);
     });
 
+    it('should increment commitments and cumulative_commitments when task is set to complete', async () => {
+      const volunteer = await DrizzleDatabaseService.createVolunteer('Task Completer', '@taskcompleter', 'active');
+      const event = await DrizzleDatabaseService.createEvent('Commitment Event', '2024-12-01T18:00:00Z', 'workshop');
+      const task = await DrizzleDatabaseService.createTask(event!.id, 'Completable Task');
+
+      await DrizzleDatabaseService.assignVolunteerToTask(task!.id, volunteer!.id);
+      await DrizzleDatabaseService.updateTaskStatus(task!.id, 'complete');
+
+      const updated = await DrizzleDatabaseService.getVolunteerByHandle('@taskcompleter');
+      expect(updated?.commitments).toBe(1);
+      expect(updated?.cumulative_commitments).toBe(1);
+    });
+
+    it('should not double-count commitments if task is already complete', async () => {
+      const volunteer = await DrizzleDatabaseService.createVolunteer('No Double', '@nodouble', 'active');
+      const event = await DrizzleDatabaseService.createEvent('No Double Event', '2024-12-01T18:00:00Z', 'workshop');
+      const task = await DrizzleDatabaseService.createTask(event!.id, 'Already Done Task');
+
+      await DrizzleDatabaseService.assignVolunteerToTask(task!.id, volunteer!.id);
+      await DrizzleDatabaseService.updateTaskStatus(task!.id, 'complete');
+      await DrizzleDatabaseService.updateTaskStatus(task!.id, 'complete');
+
+      const updated = await DrizzleDatabaseService.getVolunteerByHandle('@nodouble');
+      expect(updated?.commitments).toBe(1);
+      expect(updated?.cumulative_commitments).toBe(1);
+    });
+
     it('should get tasks for an event', async () => {
       const event = await DrizzleDatabaseService.createEvent('Multi-task Event', '2024-11-05T18:00:00Z', 'workshop');
       expect(event).toBeTruthy();
@@ -226,6 +302,70 @@ describe('Database Service', () => {
 
       const tasks = await DrizzleDatabaseService.getEventTasks(event!.id);
       expect(tasks).toHaveLength(3);
+    });
+  });
+
+  describe('Commitment Reset Behavior', () => {
+    it('should zero commitments but preserve cumulative_commitments on resetMonthlyCommitments', async () => {
+      const volunteer = await DrizzleDatabaseService.createVolunteer('Dave Brown', '@davebrown', 'active');
+      expect(volunteer).toBeTruthy();
+      await DrizzleDatabaseService.setVolunteerCommitments(volunteer!.id, 4);
+
+      await DrizzleDatabaseService.resetMonthlyCommitments();
+
+      const updated = await DrizzleDatabaseService.getVolunteerByHandle('@davebrown');
+      expect(updated?.commitments).toBe(0);
+      expect(updated?.cumulative_commitments).toBe(4);
+    });
+
+    it('should zero commitments but preserve cumulative_commitments on resetQuarterCommitments', async () => {
+      const volunteer = await DrizzleDatabaseService.createVolunteer('Eve Green', '@evegreen', 'active');
+      expect(volunteer).toBeTruthy();
+      await DrizzleDatabaseService.setVolunteerCommitments(volunteer!.id, 7);
+
+      await DrizzleDatabaseService.resetQuarterCommitments(new Date());
+
+      const updated = await DrizzleDatabaseService.getVolunteerByHandle('@evegreen');
+      expect(updated?.commitments).toBe(0);
+      expect(updated?.cumulative_commitments).toBe(7);
+    });
+
+    it('should accumulate cumulative_commitments correctly after a reset', async () => {
+      const volunteer = await DrizzleDatabaseService.createVolunteer('Frank Gray', '@frankgray', 'active');
+      expect(volunteer).toBeTruthy();
+      await DrizzleDatabaseService.setVolunteerCommitments(volunteer!.id, 5);
+
+      await DrizzleDatabaseService.resetQuarterCommitments(new Date());
+
+      // Mark a new task done after reset
+      await DrizzleDatabaseService.incrementVolunteerCommitments(volunteer!.id);
+
+      const updated = await DrizzleDatabaseService.getVolunteerByHandle('@frankgray');
+      expect(updated?.commitments).toBe(1);
+      expect(updated?.cumulative_commitments).toBe(6);
+    });
+
+    it('should preserve cumulative_commitments across multiple quarter resets', async () => {
+      const volunteer = await DrizzleDatabaseService.createVolunteer('Grace Lee', '@gracelee', 'active');
+      expect(volunteer).toBeTruthy();
+
+      // Q1: volunteer does 7 commitments
+      await DrizzleDatabaseService.setVolunteerCommitments(volunteer!.id, 7);
+      await DrizzleDatabaseService.resetQuarterCommitments(new Date());
+
+      // Q2: volunteer does 3 commitments
+      await DrizzleDatabaseService.setVolunteerCommitments(volunteer!.id, 3);
+
+      const midQuarter = await DrizzleDatabaseService.getVolunteerByHandle('@gracelee');
+      expect(midQuarter?.commitments).toBe(3);
+      expect(midQuarter?.cumulative_commitments).toBe(10);
+
+      // After Q2 reset, commitments returns to 0 but cumulative stays at 10
+      await DrizzleDatabaseService.resetQuarterCommitments(new Date());
+
+      const afterReset = await DrizzleDatabaseService.getVolunteerByHandle('@gracelee');
+      expect(afterReset?.commitments).toBe(0);
+      expect(afterReset?.cumulative_commitments).toBe(10);
     });
   });
 
@@ -243,7 +383,7 @@ describe('Database Service', () => {
 
     it('should remove admin', async () => {
       await DrizzleDatabaseService.addAdmin('@temp_admin', 'admin');
-      
+
       let isAdmin = await DrizzleDatabaseService.isAdmin('@temp_admin');
       expect(isAdmin).toBe(true);
 
@@ -263,7 +403,7 @@ describe('Database Service', () => {
       await DrizzleDatabaseService.createVolunteerWithStatus('Inactive User', '@inactive', 'inactive');
 
       const report = await DrizzleDatabaseService.getVolunteerStatusReport();
-      
+
       expect(report.total).toBe(4);
       expect(report.probation).toHaveLength(1);
       expect(report.active).toHaveLength(1);
