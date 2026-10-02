@@ -187,12 +187,6 @@ async function seedData() {
         description: 'Confirm room setup, AV equipment, and catering arrangements.',
         status: 'todo'
       },
-      {
-        event_id: eventList[0].id,
-        title: 'Introduce WDS',
-        description: 'Briefly introduce Women Devs SG and our mission at event start',
-        status: 'todo'
-      },
 
       // Panel Discussion tasks
       {
@@ -212,12 +206,6 @@ async function seedData() {
         title: 'Test Zoom setup',
         description: 'Ensure all technical aspects of the online event are working properly.',
         status: 'in_progress'
-      },
-      {
-        event_id: eventList[1].id,
-        title: 'Introduce WDS',
-        description: 'Briefly introduce Women Devs SG and our mission at event start',
-        status: 'todo'
       },
 
       // Community Hangout tasks
@@ -245,6 +233,18 @@ async function seedData() {
         event_id: eventList[4].id,
         title: 'Design conference website',
         description: 'Create a professional website with schedule, speakers, and registration.',
+        status: 'todo'
+      },
+      {
+        event_id: eventList[0].id,
+        title: 'Introduce WDS',
+        description: 'Briefly introduce Women Devs SG and our mission at event start',
+        status: 'todo'
+      },
+      {
+        event_id: eventList[1].id,
+        title: 'Introduce WDS',
+        description: 'Briefly introduce Women Devs SG and our mission at event start',
         status: 'todo'
       },
       {
