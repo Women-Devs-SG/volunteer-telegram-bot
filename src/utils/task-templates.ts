@@ -54,7 +54,7 @@ export const TASKS: TaskTemplate[] = [
   { title: 'Registration Management', description: 'Manage event registrations and attendee list', category: 'General' },
   { title: 'Follow-up Communications', description: 'Send follow-up messages to attendees', category: 'General' },
   { title: 'Documentation', description: 'Document event outcomes and learnings', category: 'General' },
-  { title: 'Introduce WDS', description: 'Briefly introduce Women Devs SG and our mission at event start', category: 'General' },
+  { title: 'Introduce WDS', description: 'Briefly introduce Women Devs SG and our mission at event start', category: 'General', guidance: '\n- Copy slides & feedback form from a recent event in GDrive\n- Slides: Update upcoming events & feedback QR code\n- Feedback form: Update description' },
 ];
 
 // Map of required tasks by event format. Use task TITLES from TASKS above.
