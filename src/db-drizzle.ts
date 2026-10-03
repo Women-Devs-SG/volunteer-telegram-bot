@@ -3,50 +3,7 @@ import { db } from './drizzle';
 import { volunteers, events, tasks, taskAssignments, admins } from './schema';
 import type { NewVolunteer, NewEvent, NewTask, NewTaskAssignment } from './schema';
 
-// Updated types for new schema
-interface Volunteer {
-  id: number;
-  name: string;
-  telegram_handle: string;
-  status: 'probation' | 'active' | 'lead' | 'inactive';
-  commitments: number;
-  commit_count_start_date: string;
-  probation_end_date?: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-interface Event {
-  id: number;
-  title: string;
-  date: string;
-  format: 'moderated_discussion' | 'conference' | 'talk' | 'hangout' | 'meeting' | 
-          'external_speaker' | 'newsletter' | 'social_media_campaign' | 'coding_project' | 'workshop' | 'panel' | 'others';
-  status: 'planning' | 'published' | 'completed' | 'cancelled';
-  venue?: string | null;
-  details?: string;
-  created_by?: number | null;
-  created_at: string;
-  updated_at: string;
-}
-
-interface Task {
-  id: number;
-  event_id: number;
-  title: string;
-  description?: string;
-  status: 'todo' | 'in_progress' | 'complete';
-  created_at: string;
-  updated_at: string;
-}
-
-interface TaskAssignment {
-  id: number;
-  task_id: number;
-  volunteer_id: number;
-  assigned_by?: number | null;
-  assigned_at: string;
-}
+import type { Volunteer, Event, Task, TaskAssignment } from './types';
 
 // Helper function to convert dates
 function toISOString(date: Date | null): string {
