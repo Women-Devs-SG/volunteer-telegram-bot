@@ -263,7 +263,7 @@ export const listVolunteersCommand = async (ctx: CommandContext<Context>) => {
     probationVolunteers.forEach(volunteer => {
       const safeName = escapeMarkdown(volunteer.name);
       const safeHandle = escapeMarkdown(volunteer.telegram_handle);
-      message += `• ${safeName} (@${safeHandle}) - ${volunteer.commitments}/3 commitments\n`;
+      message += `• ${safeName} (@${safeHandle}) - ${volunteer.commitments}/3 commitments (${volunteer.cumulative_commitments} total)\n`;
     });
     message += '\n';
   }
@@ -273,7 +273,7 @@ export const listVolunteersCommand = async (ctx: CommandContext<Context>) => {
     activeVolunteers.forEach(volunteer => {
       const safeName = escapeMarkdown(volunteer.name);
       const safeHandle = escapeMarkdown(volunteer.telegram_handle);
-      message += `• ${safeName} (@${safeHandle}) - ${volunteer.commitments} commitments\n`;
+      message += `• ${safeName} (@${safeHandle}) - ${volunteer.commitments} commitments (${volunteer.cumulative_commitments} total)\n`;
     });
     message += '\n';
   }
@@ -283,7 +283,7 @@ export const listVolunteersCommand = async (ctx: CommandContext<Context>) => {
     inactiveVolunteers.forEach(volunteer => {
       const safeName = escapeMarkdown(volunteer.name);
       const safeHandle = escapeMarkdown(volunteer.telegram_handle);
-      message += `• ${safeName} (@${safeHandle}) - ${volunteer.commitments} commitments\n`;
+      message += `• ${safeName} (@${safeHandle}) - ${volunteer.commitments} commitments (${volunteer.cumulative_commitments} total)\n`;
     });
     message += '\n';
   }
@@ -293,7 +293,7 @@ export const listVolunteersCommand = async (ctx: CommandContext<Context>) => {
     leadVolunteers.forEach(volunteer => {
       const safeName = escapeMarkdown(volunteer.name);
       const safeHandle = escapeMarkdown(volunteer.telegram_handle);
-      message += `• ${safeName} (@${safeHandle}) - ${volunteer.commitments} commitments\n`;
+      message += `• ${safeName} (@${safeHandle}) - ${volunteer.commitments} commitments (${volunteer.cumulative_commitments} total)\n`;
     });
   }
 
@@ -426,7 +426,14 @@ export const handleAddVolunteerWizard = async (ctx: Context) => {
       }
       // Set commitments
       await DrizzleDatabaseService.setVolunteerCommitments(v.id, count);
-      const finalVolunteer = { ...v, commitments: count } as any;
+
+      // Fetch volunteer from DB after updating
+      const finalVolunteer = await DrizzleDatabaseService.getVolunteerById(v.id);
+      if (!finalVolunteer) {
+        await ctx.reply('❌ Failed to retrieve volunteer after creation.');
+        addVolunteerState.delete(userId);
+        return;
+      }
       await ctx.reply(
         `✅ <b>Volunteer added successfully!</b>\n\n` +
         formatVolunteerStatus(finalVolunteer),
@@ -503,7 +510,7 @@ export const setCommitCountCommand = async (ctx: CommandContext<Context>) => {
     }
     await ctx.reply(
       `✅ **Commit count updated!**\n\n` +
-      `${safeName} (@${safeHandle}) now has ${count} commitments.` + extra,
+      `${safeName} (@${safeHandle}) now has ${count} commitments for the quarter!` + extra,
       { parse_mode: 'Markdown' }
     );
   } else {

@@ -63,7 +63,7 @@ export const formatVolunteerStatus = (volunteer: Volunteer): string => {
   statusText += `Status: ${volunteer.status.toUpperCase()}\n`;
   const start = new Date(volunteer.commit_count_start_date);
   const endText = volunteer.probation_end_date ? formatHumanDate(new Date(volunteer.probation_end_date)) : 'present';
-  statusText += `Commitments: ${volunteer.commitments} (Tracking: ${formatHumanDate(start)} → ${endText})\n`;
+  statusText += `Commitments: ${volunteer.commitments} (Tracking: ${formatHumanDate(start)} → ${endText}, ${volunteer.cumulative_commitments} total)\n\n`;
   
   if (volunteer.status === 'probation') {
     if (isEligible) {
