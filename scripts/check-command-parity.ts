@@ -2,16 +2,9 @@ import fs from 'fs';
 import path from 'path';
 
 function extractCommands(filePath: string): Set<string> {
-  const src = fs.readFileSync(filePath, 'utf8');
-  const cmdRegex = /^bot\.command\(\s*'([^']+)'/gm;
-  const commands = new Set<string>();
-  let m: RegExpExecArray | null;
-  while ((m = cmdRegex.exec(src)) !== null) {
-     if (m[1]) {
-      commands.add(m[1]);
-    }
-  }
-  return commands;
+  const source = fs.readFileSync(filePath, 'utf8');
+  const matches = source.matchAll(/^bot\.command\(\s*'([^']+)'/gm);
+  return new Set([...matches].flatMap(match => match[1] ?? []));
 }
 
 function main() {
