@@ -229,7 +229,7 @@ npm run lint
 If the diff touches `src/bot.ts` or `api/webhook.ts` (flagged in Step 3):
 
 ```bash
-npx ts-node scripts/check-command-parity.ts
+npm run check:parity
 ```
 
 **BLOCK the push if any of these exits non-zero** — including a parity mismatch. Report which command failed and why.
@@ -259,7 +259,7 @@ If hard constraints were extracted in Step 2.5, verify each one:
 
 | Constraint type | Check approach |
 |-----------------|-----------------|
-| Command parity (e.g. "must not break parity between src/bot.ts and api/webhook.ts") | `npx ts-node scripts/check-command-parity.ts` |
+| Command parity (e.g. "must not break parity between src/bot.ts and api/webhook.ts") | `npm run check:parity` |
 | Env var naming/documentation | `grep -n "process\.env\." <changed-files>` then confirm each var appears in all three `.env.*.example` files |
 | Admin authorization | Confirm any new admin-only command calls `requireAdmin` |
 | HTML escaping (user-controlled text in Telegram HTML parse mode) | `grep -n "parse_mode: 'HTML'" <changed-files>` and check adjacent interpolated variables are passed through `escapeHtml` |
@@ -456,8 +456,6 @@ The template's checklist maps directly onto what this audit already ran:
 - [x] I have aligned `api/webhook.ts` with `src/bot.ts` for new commands/handlers (Vercel parity)
 - [x] I have run `npm run check:parity` and resolved any mismatches
 ```
-
-Note: this repo's template checklist references `npm run check:parity`, but no such npm script currently exists — the equivalent command actually run in Step 4c is `npx ts-node scripts/check-command-parity.ts`. Check the box based on having run that command, and mention the missing script name in the PR body if it seems worth a follow-up.
 
 Fill "Database Changes" and "Bot Commands Affected" checklists honestly based on Step 3's bucket membership.
 

@@ -15,7 +15,7 @@ Use this default (per [AGENTS.md](../../../../AGENTS.md)'s Testing section), unl
 | New/changed bot command handler | Test mocking `DrizzleDatabaseService` | `tests/bot-commands.test.ts` |
 | New/changed `DrizzleDatabaseService` method or schema change | Test against PGlite | `tests/database.test.ts` |
 | Pure helper function (`src/utils.ts`, `src/parse-topic-link.ts`, etc.) | Unit test | `tests/<matching-name>.test.ts` |
-| Command added/removed/renamed in `src/bot.ts` or `api/webhook.ts` | Parity check | `npx ts-node scripts/check-command-parity.ts` (not a Vitest test, but still a required gate) |
+| Command added/removed/renamed in `src/bot.ts` or `api/webhook.ts` | Parity check | `npm run check:parity` (not a Vitest test, but still a required gate) |
 | Onboarding HTML page / docs / config-only | No test required | — |
 
 ## 5c — Acceptance criteria → automated test mapping (hard gate)
@@ -74,7 +74,7 @@ For each constraint from Step 2, derive a specific check:
 
 | Constraint type | Check approach |
 |-----------------|-----------------|
-| Command parity | `npx ts-node scripts/check-command-parity.ts` |
+| Command parity | `npm run check:parity` |
 | Env var naming/documentation | `grep -n "process\.env\." <changed-files>`, then confirm each var appears in `.env.local.example`, `.env.staging.example`, and `.env.production.example` |
 | Admin authorization | Confirm any new admin-only command calls `requireAdmin` rather than an ad hoc check |
 | HTML escaping | Confirm user-controlled text interpolated into an HTML-parse-mode message is passed through `escapeHtml` |

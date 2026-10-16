@@ -46,7 +46,8 @@
     "db:generate": "drizzle-kit generate",
     "db:introspect": "ts-node scripts/introspect-db.ts",
     "commit": "git-cz",
-    "prepare": "husky"
+    "prepare": "husky",
+    "check:parity": "ts-node scripts/check-command-parity.ts"
   },
   "config": {
     "commitizen": {

@@ -8,7 +8,7 @@ never remove or modify existing entries; only add new ones via the Edit tool.
 ### Command registered in src/bot.ts but not mirrored in api/webhook.ts
 **Category:** BUILD
 **Trigger:** A PR adds, removes, or renames a `bot.command('...')` call in `src/bot.ts` (the long-polling entrypoint used locally/staging) without making the identical change in `api/webhook.ts` (the Vercel serverless entrypoint used in production).
-**Check:** `npx ts-node scripts/check-command-parity.ts` — it diffs the `bot.command('...')` calls between the two files and exits non-zero on any mismatch. Run it whenever either file appears in the diff.
+**Check:** `npm run check:parity` — it diffs the `bot.command('...')` calls between the two files and exits non-zero on any mismatch. Run it whenever either file appears in the diff.
 **Verdict:** BLOCKER — production (webhook) and local/staging (long-polling) will silently diverge in which commands respond.
 **First seen:** seeded at skill setup — 2026-08-13
 
