@@ -141,7 +141,7 @@ Use this default (per [AGENTS.md](../../../AGENTS.md)'s Testing section):
 | New/changed `DrizzleDatabaseService` method | Test against real PGlite | `tests/database.test.ts` |
 | Pure helper function (`src/utils.ts`, `src/parse-topic-link.ts`, etc.) | Unit test | `tests/<matching-name>.test.ts` |
 | Schema change (`src/schema.ts`) | Round-trip/insert test via `DrizzleDatabaseService` or raw query | `tests/database.test.ts` |
-| Command added/removed/renamed in `src/bot.ts` or `api/webhook.ts` | Parity check, not a Vitest test | `npx ts-node scripts/check-command-parity.ts` — still record it as a gate in the plan |
+| Command added/removed/renamed in `src/bot.ts` or `api/webhook.ts` | Parity check, not a Vitest test | `npm run check:parity` — still record it as a gate in the plan |
 | Onboarding HTML page, docs, config-only change | No test required | — |
 | Rendering correctness of a Telegram message on-device (emoji, HTML parse mode quirks) | Manual | — |
 
@@ -244,7 +244,7 @@ Fix all errors and warnings before committing.
 **Command parity check:** if this commit touches `src/bot.ts` or `api/webhook.ts`, run:
 
 ```bash
-npx ts-node scripts/check-command-parity.ts
+npm run check:parity
 ```
 
 It must report `✅ Command parity OK` before this commit is considered done.
@@ -294,7 +294,7 @@ Repeat Step 5 for every commit in your plan.
 ```bash
 npm test
 npm run lint
-npx ts-node scripts/check-command-parity.ts   # only if src/bot.ts or api/webhook.ts changed
+npm run check:parity   # only if src/bot.ts or api/webhook.ts changed
 ```
 
 If any command fails or reports issues:
@@ -315,7 +315,7 @@ AC #1 — PASS: /my_tasks lists assignments for the calling volunteer
           → tests/bot-commands.test.ts::"/my_tasks lists assigned tasks"
 AC #2 — PASS: empty-assignment case shows friendly message
           → tests/bot-commands.test.ts::"/my_tasks shows empty state"
-AC #3 — PASS: npx ts-node scripts/check-command-parity.ts reports OK
+AC #3 — PASS: npm run check:parity reports OK
 AC #4 — PASS: npm test passes, 2 new tests added
 ```
 

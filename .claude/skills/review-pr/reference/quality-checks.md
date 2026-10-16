@@ -81,7 +81,7 @@ git diff --name-only origin/main...HEAD | grep -E '^(src/bot\.ts|api/webhook\.ts
 If either file changed, run the parity script rather than eyeballing the diff — command registration lines are easy to miss in a large diff:
 
 ```bash
-npx ts-node scripts/check-command-parity.ts
+npm run check:parity
 ```
 
 ```

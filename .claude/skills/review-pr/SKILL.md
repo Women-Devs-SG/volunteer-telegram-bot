@@ -104,7 +104,7 @@ Test plan (derived — no test plan in PR):
 Automated:
 □ npm test passes
 □ npm run lint passes
-□ npx ts-node scripts/check-command-parity.ts passes (only if src/bot.ts or api/webhook.ts changed)
+□ npm run check:parity passes (only if src/bot.ts or api/webhook.ts changed)
 
 Manual (requires human):
 □ [BOT] <specific check> — Affected: <file>
@@ -139,7 +139,7 @@ npm test         # 6b — vitest run
 If the diff touches `src/bot.ts` or `api/webhook.ts`:
 
 ```bash
-npx ts-node scripts/check-command-parity.ts   # 6c
+npm run check:parity   # 6c
 ```
 
 Record each failing command as a finding, e.g.:

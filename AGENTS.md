@@ -30,10 +30,10 @@ npm run db:generate                # generate a migration from src/schema.ts cha
 npm run db:migrate:local | :staging | :prod
 npm run db:studio:local | :staging | :prod   # Drizzle Studio GUI
 
-npx ts-node scripts/check-command-parity.ts   # verify src/bot.ts and api/webhook.ts register the same commands
+npm run check:parity               # verify src/bot.ts and api/webhook.ts register the same commands
 ```
 
-There is no npm script for the parity check — invoke `ts-node` directly, or check the `bot.command('...')` calls manually.
+The parity check only matches single-quoted `bot.command('...')` calls at the start of a line, so keep that style when registering commands.
 
 A husky pre-commit hook runs `npx lint-staged`, which runs `npm run lint` on staged `.js`/`.ts`/`.mts` files. Don't bypass it with `--no-verify`.
 A separate `commit-msg` hook checks messages with commitlint. Stage changes and run `npm run commit` for a guided Commitizen prompt, or use plain `git commit` with or without `-m`.
@@ -42,7 +42,7 @@ A separate `commit-msg` hook checks messages with commitlint. Stage changes and 
 
 - **Command handlers** live in `src/commands/{admins,broadcast,events,volunteers}.ts`, grouped by domain, not by command.
 - **`src/bot.ts`** imports every handler and calls `bot.command(...)` to register it (long-polling entry point).
-- **`api/webhook.ts`** is a second, independent registration of the same commands (Vercel webhook entry point). **Any command added, removed, or renamed in one file must be mirrored in the other** — this is the single most common way to accidentally ship a bot that behaves differently in local/staging vs. production. Run `npx ts-node scripts/check-command-parity.ts` after touching either file.
+- **`api/webhook.ts`** is a second, independent registration of the same commands (Vercel webhook entry point). **Any command added, removed, or renamed in one file must be mirrored in the other** — this is the single most common way to accidentally ship a bot that behaves differently in local/staging vs. production. Run `npm run check:parity` after touching either file.
 - **`src/schema.ts`** is the source of truth for the Drizzle schema: 5 tables (`volunteers`, `events`, `tasks`, `task_assignments`, `admins`) and 4 pg enums (`volunteer_status`, `event_format`, `event_status`, `task_status`).
 - **`src/types.ts`** hand-maintains plain TS interfaces mirroring the same shapes for code that doesn't want Drizzle's inferred types. When `schema.ts` changes, check whether `types.ts` needs the same change — nothing enforces this automatically.
 - **`src/db-drizzle.ts`** (`DrizzleDatabaseService`) is the sanctioned data-access layer. Command handlers should call it rather than importing `db` from `src/drizzle.ts` and querying directly.
