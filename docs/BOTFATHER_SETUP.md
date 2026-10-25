@@ -49,38 +49,51 @@ After creating the bot, BotFather will provide you with a token that looks like 
    ```env
    BOT_TOKEN=123456789:ABCdefGHIjklMNOpqrsTUVwxyz
    NODE_ENV=development
+   ADMIN_SECRET=your_own_local_test_secret
    ```
+
+   Choose your own private `ADMIN_SECRET` for testing admin access. This is separate from the bot token supplied by BotFather. Restart the bot after changing `.env.local`.
 
 ### 5. Set Up Bot Commands (Optional)
 
-You can configure the bot's command menu by sending `/setcommands` to BotFather:
+The local bot automatically registers its command menu when it starts. You can also configure a menu manually by sending `/setcommands` to BotFather and selecting your development bot:
 
 ```
-start - Register as a volunteer or get your status
+start - Show welcome message and help
 help - Show available commands
-profile - View your volunteer profile
-events - List planning & published events
-tasks - View your assigned tasks
+onboard - Learn about the volunteer program
+my_status - Check your volunteer status
+list_events - List planning & published events
+my_tasks - View your assigned tasks
 ```
 
-For admin commands (these won't be visible to regular users):
+Examples of admin commands:
 ```
-admin_volunteers - List all volunteers
-admin_events - Manage events
-admin_broadcast - Send announcements
-admin_reports - Generate reports
+list_volunteers - List all volunteers
+add_volunteer - Add a volunteer
+broadcast - Show the broadcast menu
+volunteer_status_report - View current volunteer status
 ```
+
+The automatically registered menu includes admin commands visible to regular users, but the bot checks admin permissions before allowing their use. Adding a command to the menu does not grant access.
 
 ### 6. Test Your Bot
 
-1. Start your local development server:
+1. From the cloned repository, install dependencies with `npm install` if you have not already done so. For first-time setup, initialize the local database:
+   ```bash
+   npm run setup:local
+   ```
+
+   With `NODE_ENV=development`, the bot uses PGlite locally; no external database is needed. This command migrates the database, clears existing local data, and inserts sample data, including placeholder admins. Do not run it each time you start the bot.
+
+2. Start your local development bot:
    ```bash
    npm run dev:local
    ```
 
-2. Find your bot on Telegram using the username you created
-3. Send `/start` to test the connection
-4. You should receive a welcome message if everything is working correctly
+3. Find your bot on Telegram using the username you created
+4. Send `/start` to test the connection
+5. You should receive a welcome message if everything is working correctly
 
 ## Bot Configuration Options
 
@@ -105,11 +118,16 @@ Then send: "This bot helps manage volunteers for Women Developers SG events. Use
 ### Testing Different User Scenarios
 
 1. **Regular User Testing**: Use your personal Telegram account
-2. **Admin Testing**: Create a test admin account by adding your handle to the database:
-   ```bash
-   # After running npm run setup:local
-   # The seed data includes @admin_user and @super_admin as test admins
+2. **Admin Testing**:
+   - Set a username on your personal Telegram account in Telegram settings.
+   - Set your own `ADMIN_SECRET` in `.env.local` as described in Step 4, then start or restart the development bot.
+   - In a private chat with your development bot (not BotFather), send the following, replacing `<your-secret>` with the exact value of `ADMIN_SECRET`:
+   ```text
+   /admin_login <your-secret>
    ```
+   - After receiving the admin-access confirmation, send `/list_volunteers` to test an admin command.
+
+   Successful login stores your Telegram username in the local admins table. The seeded `admin_user` and `super_admin` handles are examples; they do not grant your personal account access. Rerunning `npm run setup:local` clears admin registrations, so log in again afterward. Anyone who knows the secret can use it to obtain admin access to this bot; keep it private.
 
 ### Debugging Bot Messages
 
@@ -120,17 +138,19 @@ Then send: "This bot helps manage volunteers for Women Developers SG events. Use
 ### Common Issues
 
 1. **Bot not responding**: 
-   - Check if the token is correct in your `.env` file
+   - Check if the token is correct in your `.env.local` file
    - Ensure the bot is running (`npm run dev:local`)
    - Verify your internet connection
 
 2. **Database errors**:
    - Run `npm run setup:local` to initialize the local database
+   - This clears and reseeds local data, including admin registrations; use it only when you intend to initialize or reseed your development database
    - Check if PGlite dependencies are installed correctly
 
 3. **Permission errors**:
-   - Make sure your Telegram handle matches what's in the database
-   - Check admin permissions if testing admin commands
+   - Make sure your Telegram account has a username
+   - Follow [Admin Testing](#testing-different-user-scenarios) to register your username using `/admin_login <your-secret>`
+   - If you receive "Invalid admin secret", check that the supplied value matches `ADMIN_SECRET` in `.env.local` and restart the bot after changing that file
 
 ## Security Notes
 
@@ -143,11 +163,10 @@ Then send: "This bot helps manage volunteers for Women Developers SG events. Use
 
 After setting up your bot:
 
-1. Run the local setup: `npm run setup:local`
-2. Test basic commands: `/start`, `/help`, `/profile`
-3. Test admin commands if you're an admin user
-4. Run the test suite: `npm test`
-5. Start contributing to the codebase!
+1. Test basic commands: `/start`, `/help`, `/my_status`, `/list_events`, `/my_tasks`
+2. Follow [Admin Testing](#testing-different-user-scenarios) and test `/list_volunteers`
+3. Run the test suite: `npm test`
+4. Start contributing to the codebase!
 
 ## Getting Help
 
